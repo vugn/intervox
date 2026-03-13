@@ -425,7 +425,7 @@ Return ONLY a valid JSON object matching this schema:
         </div>
 
         {/* Transcript Area */}
-        <div className="w-full md:w-96 lg:w-[400px] bg-slate-900 flex flex-col h-full">
+        <div className="w-full md:w-96 lg:w-[400px] bg-slate-900 flex flex-col h-64 md:h-full">
           <div className="p-4 border-b border-slate-800 flex items-center gap-2">
             <MessageSquare className="w-4 h-4 text-slate-400" />
             <h3 className="font-medium text-slate-200">Live Transcript</h3>
@@ -453,6 +453,8 @@ Return ONLY a valid JSON object matching this schema:
                   }`}>
                   {msg.role === 'user' ? msg.text : <ReactMarkdown>{msg.text}</ReactMarkdown>}
                 </div>
+                {/* Scroll to bottom anchor */}
+                <div ref={(el) => { if (el && i === transcript.length - 1) el.scrollIntoView({ behavior: 'smooth' }) }} />
               </motion.div>
             ))}
           </div>

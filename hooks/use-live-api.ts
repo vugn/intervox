@@ -175,8 +175,12 @@ export function useLiveAPI({
   const disconnect = useCallback(() => {
     if (sessionRef.current) {
       sessionRef.current.then((session: any) => {
-        if (session && typeof session.close === "function") {
-          session.close();
+        try {
+          if (session && typeof session.close === "function" && isConnected) {
+            session.close();
+          }
+        } catch (e) {
+          console.warn("Session already closed or closing", e);
         }
       });
       sessionRef.current = null;
@@ -184,9 +188,13 @@ export function useLiveAPI({
     cleanupAudio();
     setIsConnected(false);
     setIsRecording(false);
-  }, [cleanupAudio]);
+  }, [cleanupAudio, isConnected]);
 
   const connect = useCallback(async () => {
+    if (isConnected || sessionRef.current) {
+      return; // Prevent double connection
+    }
+    
     try {
       setError(null);
       const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
@@ -370,6 +378,7 @@ export function useLiveAPI({
     startInputCapture,
     applyMicGate,
     scheduleAutoUnmute,
+    isConnected,
   ]);
 
   useEffect(() => {
