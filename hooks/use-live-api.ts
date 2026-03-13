@@ -19,6 +19,10 @@ export function useLiveAPI({
   inputDeviceId?: string;
   outputDeviceId?: string;
 }) {
+  const liveModel =
+    process.env.NEXT_PUBLIC_GEMINI_LIVE_MODEL ||
+    "models/gemini-live-2.5-flash-preview";
+
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -283,7 +287,7 @@ export function useLiveAPI({
       const langCode = languageMap[language] || "en-US";
 
       const sessionPromise = ai.live.connect({
-        model: "models/gemini-2.0-flash-exp",
+        model: liveModel,
         config: {
           responseModalities: [Modality.AUDIO],
           speechConfig: {
@@ -309,7 +313,9 @@ export function useLiveAPI({
             } catch (err: any) {
               const micErrorMessage =
                 err?.message || err?.name || "Unknown microphone error";
-              setError("Microphone access denied or failed: " + micErrorMessage);
+              setError(
+                "Microphone access denied or failed: " + micErrorMessage,
+              );
               disconnect();
             }
           },
@@ -464,7 +470,13 @@ export function useLiveAPI({
             const closeReason = event?.reason;
             if (typeof closeCode === "number") {
               const reasonText = closeReason ? ` (${closeReason})` : "";
-              setError(`Live connection closed [${closeCode}]${reasonText}`);
+              const modelHint =
+                closeCode === 1008
+                  ? " Check NEXT_PUBLIC_GEMINI_LIVE_MODEL and ensure the model supports realtime bidiGenerateContent."
+                  : "";
+              setError(
+                `Live connection closed [${closeCode}]${reasonText}${modelHint}`,
+              );
             }
           },
         },
@@ -480,6 +492,7 @@ export function useLiveAPI({
     systemInstruction,
     voiceName,
     language,
+    liveModel,
     disconnect,
     cleanupAudio,
     startInputCapture,

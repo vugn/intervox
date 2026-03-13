@@ -12,6 +12,9 @@ import { useAuth } from '@/hooks/use-auth';
 import { GoogleGenAI, Type } from '@google/genai';
 
 function InterviewSessionContent() {
+  const analysisModel =
+    process.env.NEXT_PUBLIC_GEMINI_TEXT_MODEL || 'gemini-2.5-flash';
+
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth();
@@ -128,15 +131,15 @@ You must speak with a standard ${language} accent.
     const isIndo = language.toLowerCase() === 'indonesian';
     const aiName = 'Intervox';
     const scope = focusAreas || role;
-    
+
     const greetingTextIndo = `Halo ${name}, saya ${aiName} dan saya adalah pewawancara ${interviewType} Anda untuk sesi hari ini. Selamat datang di latihan ${moduleCategory} dengan fokus pada ${scope}. Ini adalah sesi wawancara yang akan membantu Anda mempersiapkan proses seleksi yang sebenarnya. Saya akan menanyakan beberapa pertanyaan relevan selama waktu yang dialokasikan. Mohon jawab dengan jelas dan percaya diri seperti dalam wawancara yang sesungguhnya. Siap untuk memulai, ${name}?`;
 
     const greetingTextEng = `Hello ${name}, I am ${aiName} and I am your ${interviewType} interviewer for today's session. Welcome to the ${moduleCategory} practice focusing on ${scope}. This is an interview session that will help you prepare for the actual selection process. I will ask you several relevant questions during the allocated time. Please answer clearly and confidently as you would in a real interview. Ready to start, ${name}?`;
-    
+
     const greetingText = isIndo ? greetingTextIndo : greetingTextEng;
 
     const kickoffPrompt = `IMPORTANT INSTRUCTION: Your VERY FIRST response MUST be EXACTLY the following text, word-for-word, without any additions, internal narration, or process language. Just read the text naturally and engagingly:\n\n"${greetingText}"`;
-    
+
     hasStartedGreeting.current = true;
     sendText(kickoffPrompt);
 
@@ -220,7 +223,7 @@ Return ONLY a valid JSON object matching this schema:
 }`;
 
           const response = await ai.models.generateContent({
-            model: 'gemini-2.0-flash-exp',
+            model: analysisModel,
             contents: analysisPrompt,
             config: {
               responseMimeType: 'application/json',
