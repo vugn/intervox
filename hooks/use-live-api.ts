@@ -219,7 +219,7 @@ export function useLiveAPI({
       const langCode = languageMap[language] || "en-US";
 
       const sessionPromise = ai.live.connect({
-        model: "gemini-2.5-flash-native-audio-preview-09-2025",
+        model: "models/gemini-2.0-flash-exp",
         config: {
           responseModalities: [Modality.AUDIO],
           speechConfig: {
