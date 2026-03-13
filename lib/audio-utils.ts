@@ -28,12 +28,14 @@ export function float32ArrayToBase64(float32Array: Float32Array): string {
 
 export class AudioQueue {
   private audioContext: AudioContext;
+  private inputSampleRate: number;
   private streamDestination: MediaStreamAudioDestinationNode;
   private audioElement: HTMLAudioElement;
   private nextStartTime: number;
   private sources: AudioBufferSourceNode[] = [];
 
   constructor(sampleRate: number = 24000, outputDeviceId?: string) {
+    this.inputSampleRate = sampleRate;
     this.audioContext = new (
       window.AudioContext || (window as any).webkitAudioContext
     )({ sampleRate });
@@ -66,7 +68,7 @@ export class AudioQueue {
     const buffer = this.audioContext.createBuffer(
       1,
       float32Array.length,
-      this.audioContext.sampleRate,
+      this.inputSampleRate,
     );
     buffer.getChannelData(0).set(float32Array);
     const source = this.audioContext.createBufferSource();

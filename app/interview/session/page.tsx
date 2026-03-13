@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, Suspense } from 'react';
-import { Mic, MicOff, PhoneOff, Activity, MessageSquare, AlertCircle, Settings2 } from 'lucide-react';
+import { Mic, MicOff, PhoneOff, Activity, MessageSquare, AlertCircle, Settings2, Loader2 } from 'lucide-react';
 import * as motion from 'motion/react-client';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useLiveAPI } from '@/hooks/use-live-api';
@@ -146,6 +146,7 @@ CRITICAL RULES:
   };
 
   const confirmEndInterview = async () => {
+    if (isSaving) return;
     setIsSaving(true);
     disconnect();
 
@@ -507,18 +508,33 @@ Return ONLY a valid JSON object matching this schema:
             <div className="flex justify-end gap-3">
               <button
                 onClick={cancelEndInterview}
-                className="px-4 py-2 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-800 transition-colors"
+                disabled={isSaving}
+                className="px-4 py-2 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmEndInterview}
-                className="px-4 py-2 rounded-lg text-sm font-medium bg-red-500 text-white hover:bg-red-600 transition-colors"
+                disabled={isSaving}
+                className="px-4 py-2 rounded-lg text-sm font-medium bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-70 disabled:cursor-not-allowed inline-flex items-center gap-2"
               >
-                End Session
+                {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                {isSaving ? 'Saving...' : 'End Session'}
               </button>
             </div>
           </motion.div>
+        </div>
+      )}
+
+      {isSaving && (
+        <div className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-center justify-center">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl px-6 py-5 flex items-center gap-3 text-white shadow-2xl">
+            <Loader2 className="w-5 h-5 animate-spin text-indigo-400" />
+            <div>
+              <p className="text-sm font-semibold">Menyimpan hasil interview...</p>
+              <p className="text-xs text-slate-400">Mohon tunggu, jangan tutup halaman.</p>
+            </div>
+          </div>
         </div>
       )}
     </div>
