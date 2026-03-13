@@ -364,7 +364,9 @@ export function useLiveAPI({
   }, [
     systemInstruction,
     voiceName,
+    language,
     disconnect,
+    cleanupAudio,
     startInputCapture,
     applyMicGate,
     scheduleAutoUnmute,
