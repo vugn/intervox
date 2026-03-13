@@ -39,6 +39,7 @@ export function useLiveAPI({
   const aiSpeakingUntilRef = useRef<number>(0);
   const userMutedRef = useRef(false);
   const autoMutedRef = useRef(false);
+  const isDisconnectingRef = useRef(false);
   const unmuteTimerRef = useRef<number | null>(null);
   const echoSuppressUntilRef = useRef<number>(0);
 
@@ -155,14 +156,24 @@ export function useLiveAPI({
         }
 
         const base64Data = float32ArrayToBase64(inputData);
-        sessionPromise.then((session) => {
-          session.sendRealtimeInput({
-            media: {
-              data: base64Data,
-              mimeType: "audio/pcm;rate=16000",
-            },
+        if (!isDisconnectingRef.current && sessionPromise) {
+          sessionPromise.then((session) => {
+            if (isDisconnectingRef.current) return;
+            try {
+              session.sendRealtimeInput({
+                media: {
+                  data: base64Data,
+                  mimeType: "audio/pcm;rate=16000",
+                },
+              });
+            } catch (err) {
+              // Ignore WS errors on closed connections
+              isDisconnectingRef.current = true;
+            }
+          }).catch(() => {
+            isDisconnectingRef.current = true;
           });
-        });
+        }
       };
 
       source.connect(processor);
@@ -173,6 +184,7 @@ export function useLiveAPI({
   );
 
   const disconnect = useCallback(() => {
+    isDisconnectingRef.current = true;
     if (sessionRef.current) {
       sessionRef.current.then((session: any) => {
         try {
@@ -194,6 +206,7 @@ export function useLiveAPI({
     if (isConnected || sessionRef.current) {
       return; // Prevent double connection
     }
+    isDisconnectingRef.current = false;
     
     try {
       setError(null);
