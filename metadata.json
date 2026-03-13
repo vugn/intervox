@@ -1,0 +1,5 @@
+{
+  "name": "Intervox",
+  "description": "AI-powered intelligent interview platform with real-time voice interaction.",
+  "requestFramePermissions": ["microphone"]
+}
