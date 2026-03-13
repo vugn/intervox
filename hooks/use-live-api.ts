@@ -21,7 +21,7 @@ export function useLiveAPI({
 }) {
   const liveModel =
     process.env.NEXT_PUBLIC_GEMINI_LIVE_MODEL ||
-    "models/gemini-live-2.5-flash-preview";
+    "gemini-2.5-flash-native-audio-preview-12-2025";
 
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
