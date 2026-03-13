@@ -21,12 +21,13 @@ function InterviewSessionContent() {
   const [isMuted, setIsMuted] = useState(false);
   const [showEndConfirm, setShowEndConfirm] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [textAnswer, setTextAnswer] = useState('');
   const [showAudioSettings, setShowAudioSettings] = useState(false);
   const [audioInputs, setAudioInputs] = useState<MediaDeviceInfo[]>([]);
   const [audioOutputs, setAudioOutputs] = useState<MediaDeviceInfo[]>([]);
   const [inputDeviceId, setInputDeviceId] = useState('');
   const [outputDeviceId, setOutputDeviceId] = useState('');
+  const transcriptContainerRef = useRef<HTMLDivElement | null>(null);
+  const shouldAutoScrollRef = useRef(true);
   const hasStartedGreeting = useRef(false);
   const kickoffRetryRef = useRef<number | null>(null);
 
@@ -158,6 +159,18 @@ You must speak with a standard ${language} accent.
       }
     };
   }, [isConnected, role, name, interviewType, moduleCategory, focusAreas, language, sendText, transcript]);
+
+  useEffect(() => {
+    const container = transcriptContainerRef.current;
+    if (!container || !shouldAutoScrollRef.current) {
+      return;
+    }
+
+    container.scrollTo({
+      top: container.scrollHeight,
+      behavior: 'smooth',
+    });
+  }, [transcript]);
 
   const handleStartRecording = async () => {
     await connect();
@@ -298,15 +311,8 @@ Return ONLY a valid JSON object matching this schema:
     toggleMute();
   };
 
-  const handleSendTextAnswer = () => {
-    const value = textAnswer.trim();
-    if (!value || !isConnected) return;
-    sendText(value);
-    setTextAnswer('');
-  };
-
   return (
-    <div className="flex flex-col h-[calc(100vh-64px)] bg-slate-950 text-slate-50">
+    <div className={`flex flex-col min-h-[calc(100dvh-64px)] md:h-[calc(100vh-64px)] bg-slate-950 text-slate-50 ${!isConnected ? 'pb-24 md:pb-0' : ''}`}>
 
       {/* Header */}
       <header className="px-6 py-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
@@ -372,10 +378,10 @@ Return ONLY a valid JSON object matching this schema:
       )}
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+      <div className="flex-1 flex flex-col md:flex-row md:overflow-hidden">
 
         {/* Visualizer & AI Avatar Area */}
-        <div className="flex-1 flex flex-col items-center justify-center p-8 relative border-b md:border-b-0 md:border-r border-slate-800">
+        <div className="flex-1 flex flex-col items-center justify-center p-6 md:p-8 relative border-b md:border-b-0 md:border-r border-slate-800 min-h-[320px] md:min-h-0">
 
           {error && (
             <div className="absolute top-4 left-4 right-4 bg-red-500/10 border border-red-500/50 text-red-500 px-4 py-3 rounded-xl flex items-start gap-3">
@@ -416,26 +422,25 @@ Return ONLY a valid JSON object matching this schema:
             ))}
           </div>
 
-          {/* Live CC Overlay */}
-          {isConnected && transcript.length > 0 && transcript[transcript.length - 1].role === 'ai' && (
-            <div className="absolute bottom-24 left-8 right-8 text-center z-10 pointer-events-none">
-              <div className="inline-block bg-black/70 backdrop-blur-md text-white px-6 py-3 rounded-2xl border border-white/10 max-w-2xl mx-auto shadow-2xl">
-                <div className="text-lg font-medium leading-relaxed prose prose-invert max-w-none prose-p:my-0">
-                  <ReactMarkdown>{transcript[transcript.length - 1].text}</ReactMarkdown>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Transcript Area */}
-        <div className="w-full md:w-96 lg:w-[400px] bg-slate-900 flex flex-col h-64 md:h-full">
+        <div className="w-full md:w-96 lg:w-[400px] bg-slate-900 flex flex-col h-[45dvh] md:h-full min-h-[260px] md:min-h-0">
           <div className="p-4 border-b border-slate-800 flex items-center gap-2">
             <MessageSquare className="w-4 h-4 text-slate-400" />
             <h3 className="font-medium text-slate-200">Live Transcript</h3>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-6">
+          <div
+            ref={transcriptContainerRef}
+            onScroll={(e) => {
+              const target = e.currentTarget;
+              const distanceToBottom =
+                target.scrollHeight - target.scrollTop - target.clientHeight;
+              shouldAutoScrollRef.current = distanceToBottom < 120;
+            }}
+            className="flex-1 overflow-y-auto p-4 space-y-6"
+          >
             {transcript.length === 0 && !isConnected && (
               <div className="text-center text-slate-500 mt-10 text-sm">
                 Transcript will appear here once the interview starts.
@@ -457,39 +462,15 @@ Return ONLY a valid JSON object matching this schema:
                   }`}>
                   {msg.role === 'user' ? msg.text : <ReactMarkdown>{msg.text}</ReactMarkdown>}
                 </div>
-                {/* Scroll to bottom anchor */}
-                <div ref={(el) => { if (el && i === transcript.length - 1) el.scrollIntoView({ behavior: 'smooth' }) }} />
               </motion.div>
             ))}
-            {/* Anchor for auto-scrolling to the bottom of the transcript list */}
-            <div ref={(el) => { if (el) el.scrollIntoView({ behavior: 'smooth' }) }} />
           </div>
         </div>
       </div>
 
       {/* Controls */}
       <div className="bg-slate-900 border-t border-slate-800 px-4 md:px-6 py-4 space-y-3">
-        {isConnected && (
-          <div className="max-w-4xl mx-auto flex gap-2">
-            <input
-              type="text"
-              value={textAnswer}
-              onChange={(e) => setTextAnswer(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSendTextAnswer()}
-              placeholder="Input jawaban teks real-time..."
-              className="flex-1 bg-slate-800 border border-slate-700 text-slate-100 px-4 py-2.5 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-            <button
-              type="button"
-              onClick={handleSendTextAnswer}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors"
-            >
-              Kirim
-            </button>
-          </div>
-        )}
-
-        <div className="h-16 flex items-center justify-center gap-6">
+        <div className="hidden md:flex h-16 items-center justify-center gap-6">
           {!isConnected ? (
             <button
               onClick={handleStartRecording}
@@ -521,6 +502,41 @@ Return ONLY a valid JSON object matching this schema:
             </>
           )}
         </div>
+
+        {!isConnected && (
+          <div className="fixed bottom-4 left-4 right-4 z-40 md:hidden">
+            <button
+              onClick={handleStartRecording}
+              disabled={isConnecting}
+              className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-full font-bold transition-all shadow-lg shadow-indigo-500/20"
+            >
+              {isConnecting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Mic className="w-5 h-5" />}
+              {isConnecting ? 'Connecting...' : 'Start Interview'}
+            </button>
+          </div>
+        )}
+
+        {isConnected && (
+          <div className="h-16 flex items-center justify-center gap-6 md:hidden">
+            <button
+              onClick={handleToggleMute}
+              className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${isMuted
+                ? 'bg-red-500/20 text-red-500 hover:bg-red-500/30'
+                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                }`}
+            >
+              {isMuted ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
+            </button>
+
+            <button
+              onClick={handleEndInterview}
+              className="w-14 h-14 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center transition-all shadow-lg shadow-red-500/20 hover:-translate-y-1"
+              title="End Interview"
+            >
+              <PhoneOff className="w-6 h-6" />
+            </button>
+          </div>
+        )}
       </div>
       {/* End Interview Confirmation Modal */}
       {showEndConfirm && (
