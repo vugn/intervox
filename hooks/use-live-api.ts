@@ -39,7 +39,6 @@ export function useLiveAPI({
   const aiSpeakingUntilRef = useRef<number>(0);
   const userMutedRef = useRef(false);
   const autoMutedRef = useRef(false);
-  const isDisconnectingRef = useRef(false);
   const unmuteTimerRef = useRef<number | null>(null);
   const echoSuppressUntilRef = useRef<number>(0);
 
@@ -70,6 +69,9 @@ export function useLiveAPI({
   }, [applyMicGate]);
 
   const stopInputCapture = useCallback(() => {
+    if (processorRef.current) {
+      processorRef.current.onaudioprocess = null;
+    }
     if (processorRef.current && sourceRef.current) {
       sourceRef.current.disconnect();
       processorRef.current.disconnect();
@@ -156,24 +158,18 @@ export function useLiveAPI({
         }
 
         const base64Data = float32ArrayToBase64(inputData);
-        if (!isDisconnectingRef.current && sessionPromise) {
-          sessionPromise.then((session) => {
-            if (isDisconnectingRef.current) return;
-            try {
-              session.sendRealtimeInput({
-                media: {
-                  data: base64Data,
-                  mimeType: "audio/pcm;rate=16000",
-                },
-              });
-            } catch (err) {
-              // Ignore WS errors on closed connections
-              isDisconnectingRef.current = true;
-            }
-          }).catch(() => {
-            isDisconnectingRef.current = true;
-          });
-        }
+        sessionPromise.then((session) => {
+          try {
+            session.sendRealtimeInput({
+              media: {
+                data: base64Data,
+                mimeType: "audio/pcm;rate=16000",
+              },
+            });
+          } catch(err) {
+            // Ignored softly
+          }
+        });
       };
 
       source.connect(processor);
@@ -184,15 +180,14 @@ export function useLiveAPI({
   );
 
   const disconnect = useCallback(() => {
-    isDisconnectingRef.current = true;
     if (sessionRef.current) {
       sessionRef.current.then((session: any) => {
-        try {
-          if (session && typeof session.close === "function" && isConnected) {
+        if (session && typeof session.close === "function") {
+          try {
             session.close();
+          } catch (e) {
+            // Ignore if closed
           }
-        } catch (e) {
-          console.warn("Session already closed or closing", e);
         }
       });
       sessionRef.current = null;
@@ -200,14 +195,9 @@ export function useLiveAPI({
     cleanupAudio();
     setIsConnected(false);
     setIsRecording(false);
-  }, [cleanupAudio, isConnected]);
+  }, [cleanupAudio]);
 
   const connect = useCallback(async () => {
-    if (isConnected || sessionRef.current) {
-      return; // Prevent double connection
-    }
-    isDisconnectingRef.current = false;
-    
     try {
       setError(null);
       const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
@@ -391,7 +381,6 @@ export function useLiveAPI({
     startInputCapture,
     applyMicGate,
     scheduleAutoUnmute,
-    isConnected,
   ]);
 
   useEffect(() => {

@@ -219,7 +219,7 @@ Return ONLY a valid JSON object matching this schema:
 }`;
 
           const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
+            model: 'gemini-2.0-flash-exp',
             contents: analysisPrompt,
             config: {
               responseMimeType: 'application/json',
@@ -457,6 +457,8 @@ Return ONLY a valid JSON object matching this schema:
                 <div ref={(el) => { if (el && i === transcript.length - 1) el.scrollIntoView({ behavior: 'smooth' }) }} />
               </motion.div>
             ))}
+            {/* Anchor for auto-scrolling to the bottom of the transcript list */}
+            <div ref={(el) => { if (el) el.scrollIntoView({ behavior: 'smooth' }) }} />
           </div>
         </div>
       </div>
