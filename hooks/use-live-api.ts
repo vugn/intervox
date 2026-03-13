@@ -41,6 +41,8 @@ export function useLiveAPI({
   const autoMutedRef = useRef(false);
   const unmuteTimerRef = useRef<number | null>(null);
   const echoSuppressUntilRef = useRef<number>(0);
+  const isSessionActiveRef = useRef(false);
+  const currentSessionIdRef = useRef(0);
 
   const getMicTrack = useCallback(() => {
     return mediaStreamRef.current?.getAudioTracks()?.[0] || null;
@@ -102,7 +104,7 @@ export function useLiveAPI({
   }, [stopInputCapture]);
 
   const startInputCapture = useCallback(
-    async (sessionPromise: Promise<any>) => {
+    async (sessionPromise: Promise<any>, sessionId: number) => {
       stopInputCapture();
       const constraints: MediaTrackConstraints = {
         sampleRate: 16000,
@@ -132,6 +134,13 @@ export function useLiveAPI({
       processorRef.current = processor;
 
       processor.onaudioprocess = (e) => {
+        if (
+          !isSessionActiveRef.current ||
+          currentSessionIdRef.current !== sessionId
+        ) {
+          return;
+        }
+
         const inputData = e.inputBuffer.getChannelData(0);
 
         let sum = 0;
@@ -159,6 +168,24 @@ export function useLiveAPI({
 
         const base64Data = float32ArrayToBase64(inputData);
         sessionPromise.then((session) => {
+          if (
+            !isSessionActiveRef.current ||
+            currentSessionIdRef.current !== sessionId
+          ) {
+            return;
+          }
+
+          const wsReadyState =
+            (session as any)?._ws?.readyState ??
+            (session as any)?.ws?.readyState ??
+            (session as any)?.socket?.readyState;
+          if (
+            typeof wsReadyState === "number" &&
+            wsReadyState !== WebSocket.OPEN
+          ) {
+            return;
+          }
+
           try {
             session.sendRealtimeInput({
               media: {
@@ -166,7 +193,7 @@ export function useLiveAPI({
                 mimeType: "audio/pcm;rate=16000",
               },
             });
-          } catch(err) {
+          } catch (err) {
             // Ignored softly
           }
         });
@@ -180,6 +207,7 @@ export function useLiveAPI({
   );
 
   const disconnect = useCallback(() => {
+    isSessionActiveRef.current = false;
     if (sessionRef.current) {
       sessionRef.current.then((session: any) => {
         if (session && typeof session.close === "function") {
@@ -200,6 +228,9 @@ export function useLiveAPI({
   const connect = useCallback(async () => {
     try {
       setError(null);
+      const sessionId = currentSessionIdRef.current + 1;
+      currentSessionIdRef.current = sessionId;
+      isSessionActiveRef.current = false;
       const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
       if (!apiKey) {
         throw new Error(
@@ -234,16 +265,25 @@ export function useLiveAPI({
         },
         callbacks: {
           onopen: async () => {
+            if (currentSessionIdRef.current !== sessionId) return;
+            isSessionActiveRef.current = true;
             setIsConnected(true);
             // Start microphone
             try {
-              await startInputCapture(sessionPromise);
+              await startInputCapture(sessionPromise, sessionId);
             } catch (err: any) {
               setError("Microphone access denied or failed: " + err.message);
               disconnect();
             }
           },
           onmessage: async (message: LiveServerMessage) => {
+            if (
+              !isSessionActiveRef.current ||
+              currentSessionIdRef.current !== sessionId
+            ) {
+              return;
+            }
+
             // Handle audio output
             const base64Audio =
               message.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
@@ -358,9 +398,11 @@ export function useLiveAPI({
           },
           onerror: (err) => {
             console.error("Live API Error:", err);
+            isSessionActiveRef.current = false;
             setError("Connection error occurred.");
           },
           onclose: () => {
+            isSessionActiveRef.current = false;
             setIsConnected(false);
             setIsRecording(false);
             cleanupAudio();
@@ -406,8 +448,11 @@ export function useLiveAPI({
   }, [applyMicGate]);
 
   const sendText = useCallback((text: string) => {
-    if (sessionRef.current) {
+    if (sessionRef.current && isSessionActiveRef.current) {
       sessionRef.current.then((session: any) => {
+        if (!isSessionActiveRef.current) {
+          return;
+        }
         session.sendClientContent({
           turns: [{ role: "user", parts: [{ text }] }],
           turnComplete: true,
@@ -421,7 +466,10 @@ export function useLiveAPI({
       inputDeviceIdRef.current = deviceId;
       if (isConnected && sessionRef.current) {
         try {
-          await startInputCapture(sessionRef.current);
+          await startInputCapture(
+            sessionRef.current,
+            currentSessionIdRef.current,
+          );
         } catch (err: any) {
           setError("Failed to switch microphone: " + err.message);
         }
