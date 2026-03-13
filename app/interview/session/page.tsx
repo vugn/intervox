@@ -71,6 +71,7 @@ You must speak with a standard ${language} accent.
 
   const {
     isConnected,
+    isConnecting,
     isRecording,
     error,
     transcript,
@@ -489,10 +490,11 @@ Return ONLY a valid JSON object matching this schema:
           {!isConnected ? (
             <button
               onClick={handleStartRecording}
+              disabled={isConnecting}
               className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-full font-bold transition-all shadow-lg shadow-indigo-500/20 hover:-translate-y-1"
             >
-              <Mic className="w-5 h-5" />
-              Start Interview
+              {isConnecting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Mic className="w-5 h-5" />}
+              {isConnecting ? 'Connecting...' : 'Start Interview'}
             </button>
           ) : (
             <>

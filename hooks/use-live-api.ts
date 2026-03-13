@@ -20,6 +20,7 @@ export function useLiveAPI({
   outputDeviceId?: string;
 }) {
   const [isConnected, setIsConnected] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [transcript, setTranscript] = useState<
@@ -43,6 +44,7 @@ export function useLiveAPI({
   const echoSuppressUntilRef = useRef<number>(0);
   const isSessionActiveRef = useRef(false);
   const currentSessionIdRef = useRef(0);
+  const isConnectingRef = useRef(false);
 
   const getMicTrack = useCallback(() => {
     return mediaStreamRef.current?.getAudioTracks()?.[0] || null;
@@ -128,9 +130,11 @@ export function useLiveAPI({
       } catch (err: any) {
         const shouldRetryWithDefault =
           Boolean(inputDeviceIdRef.current) &&
-          ["NotFoundError", "OverconstrainedError", "NotReadableError"].includes(
-            err?.name,
-          );
+          [
+            "NotFoundError",
+            "OverconstrainedError",
+            "NotReadableError",
+          ].includes(err?.name);
 
         if (!shouldRetryWithDefault) {
           throw err;
@@ -229,6 +233,8 @@ export function useLiveAPI({
   const disconnect = useCallback(() => {
     currentSessionIdRef.current += 1;
     isSessionActiveRef.current = false;
+    isConnectingRef.current = false;
+    setIsConnecting(false);
     if (sessionRef.current) {
       sessionRef.current.then((session: any) => {
         if (session && typeof session.close === "function") {
@@ -247,7 +253,13 @@ export function useLiveAPI({
   }, [cleanupAudio]);
 
   const connect = useCallback(async () => {
+    if (isSessionActiveRef.current || isConnectingRef.current) {
+      return;
+    }
+
     try {
+      isConnectingRef.current = true;
+      setIsConnecting(true);
       setError(null);
       const sessionId = currentSessionIdRef.current + 1;
       currentSessionIdRef.current = sessionId;
@@ -288,12 +300,16 @@ export function useLiveAPI({
           onopen: async () => {
             if (currentSessionIdRef.current !== sessionId) return;
             isSessionActiveRef.current = true;
+            isConnectingRef.current = false;
+            setIsConnecting(false);
             setIsConnected(true);
             // Start microphone
             try {
               await startInputCapture(sessionPromise, sessionId);
             } catch (err: any) {
-              setError("Microphone access denied or failed: " + err.message);
+              const micErrorMessage =
+                err?.message || err?.name || "Unknown microphone error";
+              setError("Microphone access denied or failed: " + micErrorMessage);
               disconnect();
             }
           },
@@ -423,22 +439,41 @@ export function useLiveAPI({
             }
             console.error("Live API Error:", err);
             isSessionActiveRef.current = false;
-            setError("Connection error occurred.");
+            isConnectingRef.current = false;
+            setIsConnecting(false);
+
+            const errMessage =
+              (err as any)?.message ||
+              (err as any)?.error?.message ||
+              (err as any)?.statusText ||
+              "Unknown connection error";
+            setError("Connection error occurred: " + errMessage);
           },
-          onclose: () => {
+          onclose: (event?: any) => {
             if (currentSessionIdRef.current !== sessionId) {
               return;
             }
             isSessionActiveRef.current = false;
+            isConnectingRef.current = false;
+            setIsConnecting(false);
             setIsConnected(false);
             setIsRecording(false);
             cleanupAudio();
+
+            const closeCode = event?.code;
+            const closeReason = event?.reason;
+            if (typeof closeCode === "number") {
+              const reasonText = closeReason ? ` (${closeReason})` : "";
+              setError(`Live connection closed [${closeCode}]${reasonText}`);
+            }
           },
         },
       });
 
       sessionRef.current = sessionPromise;
     } catch (err: any) {
+      isConnectingRef.current = false;
+      setIsConnecting(false);
       setError("Failed to connect: " + err.message);
     }
   }, [
@@ -514,6 +549,7 @@ export function useLiveAPI({
 
   return {
     isConnected,
+    isConnecting,
     isRecording,
     error,
     transcript,
