@@ -106,20 +106,40 @@ export function useLiveAPI({
   const startInputCapture = useCallback(
     async (sessionPromise: Promise<any>, sessionId: number) => {
       stopInputCapture();
-      const constraints: MediaTrackConstraints = {
+      const baseConstraints: MediaTrackConstraints = {
         sampleRate: 16000,
         channelCount: 1,
         echoCancellation: true,
         noiseSuppression: true,
         autoGainControl: true,
-        ...(inputDeviceIdRef.current
-          ? { deviceId: { exact: inputDeviceIdRef.current } }
-          : {}),
       };
 
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: constraints,
-      });
+      let stream: MediaStream;
+      try {
+        const preferredConstraints: MediaTrackConstraints = {
+          ...baseConstraints,
+          ...(inputDeviceIdRef.current
+            ? { deviceId: { exact: inputDeviceIdRef.current } }
+            : {}),
+        };
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: preferredConstraints,
+        });
+      } catch (err: any) {
+        const shouldRetryWithDefault =
+          Boolean(inputDeviceIdRef.current) &&
+          ["NotFoundError", "OverconstrainedError", "NotReadableError"].includes(
+            err?.name,
+          );
+
+        if (!shouldRetryWithDefault) {
+          throw err;
+        }
+
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: baseConstraints,
+        });
+      }
       mediaStreamRef.current = stream;
 
       const audioCtx = new (
@@ -207,6 +227,7 @@ export function useLiveAPI({
   );
 
   const disconnect = useCallback(() => {
+    currentSessionIdRef.current += 1;
     isSessionActiveRef.current = false;
     if (sessionRef.current) {
       sessionRef.current.then((session: any) => {
@@ -397,11 +418,17 @@ export function useLiveAPI({
             }
           },
           onerror: (err) => {
+            if (currentSessionIdRef.current !== sessionId) {
+              return;
+            }
             console.error("Live API Error:", err);
             isSessionActiveRef.current = false;
             setError("Connection error occurred.");
           },
           onclose: () => {
+            if (currentSessionIdRef.current !== sessionId) {
+              return;
+            }
             isSessionActiveRef.current = false;
             setIsConnected(false);
             setIsRecording(false);
