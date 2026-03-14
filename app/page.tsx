@@ -10,9 +10,6 @@ export default function Home() {
         <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,_rgba(99,102,241,0.15),_transparent)]"></div>
         <div className="container mx-auto px-4 text-center">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-50 text-indigo-700 text-xs font-semibold rounded-full border border-indigo-100 mb-6">
-              <Zap className="w-3.5 h-3.5" /> Powered by Google Gemini Live API
-            </span>
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-display font-bold tracking-tight text-slate-900 mb-6 leading-tight">
               Latih <span className="text-indigo-600">Interview</span> Kamu<br className="hidden sm:block" /> Bersama AI
             </h1>
