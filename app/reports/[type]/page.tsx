@@ -7,6 +7,7 @@ import { REPORT_ITEMS, SAMPLE_ROWS } from '@/lib/report-templates';
 import { ArrowLeft, Download, FileSpreadsheet } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { getAnalysisBySession, getConversationBySession, getRecommendationsBySession, getSessionById, listAllSessions, listSessionsByUser } from '@/lib/data-service';
+import { jsPDF } from 'jspdf';
 
 const formatDate = (value: unknown) => {
     if (!value) return '-';
@@ -47,25 +48,6 @@ export default function ReportDetailPage() {
 
     const report = REPORT_ITEMS.find((item) => item.type === type);
     const isAdmin = userData?.role === 'admin';
-
-    if (!report) {
-        return (
-            <div className="container mx-auto px-4 py-12 max-w-3xl">
-                <h1 className="text-2xl font-bold text-slate-900 mb-2">Laporan tidak ditemukan</h1>
-                <Link href="/reports" className="text-indigo-600 hover:underline">Kembali ke daftar laporan</Link>
-            </div>
-        );
-    }
-
-    if (report.adminOnly && !isAdmin) {
-        return (
-            <div className="container mx-auto px-4 py-12 max-w-3xl">
-                <h1 className="text-2xl font-bold text-slate-900 mb-2">Akses ditolak</h1>
-                <p className="text-slate-600 mb-4">Laporan ini hanya tersedia untuk admin.</p>
-                <Link href="/reports" className="text-indigo-600 hover:underline">Kembali ke daftar laporan</Link>
-            </div>
-        );
-    }
 
     const isSessionBasedReport = ['transcript', 'strength-weakness', 'answer-comparison', 'development-recommendation', 'certificate'].includes(type);
 
@@ -326,6 +308,7 @@ export default function ReportDetailPage() {
     }, [type, user, userData, selectedSessionId, fromDate, toDate, isSessionBasedReport]);
 
     const headers = rows.length > 0 ? Object.keys(rows[0]) : [];
+    const certificateRow = type === 'certificate' && rows.length > 0 ? rows[0] : null;
 
     const downloadCsv = () => {
         if (!rows.length) return;
@@ -343,6 +326,130 @@ export default function ReportDetailPage() {
         document.body.removeChild(link);
     };
 
+    const downloadCertificate = () => {
+        if (!certificateRow) return;
+
+        const certificateNumber = String(certificateRow['Nomor Sertifikat'] ?? '-');
+        const candidateName = String(certificateRow['Nama Kandidat'] ?? '-');
+        const jobRole = String(certificateRow['Posisi'] ?? '-');
+        const company = String(certificateRow['Perusahaan'] ?? '-');
+        const finalScore = String(certificateRow['Nilai Akhir'] ?? '-');
+        const predicate = String(certificateRow['Predikat'] ?? '-');
+        const issuedAt = String(certificateRow['Tanggal Terbit'] ?? '-');
+
+        const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+
+        pdf.setFillColor(247, 250, 252);
+        pdf.rect(0, 0, pageWidth, pageHeight, 'F');
+
+        pdf.setFillColor(226, 232, 240);
+        pdf.circle(-8, -8, 38, 'F');
+        pdf.circle(pageWidth + 8, -8, 38, 'F');
+        pdf.circle(-8, pageHeight + 8, 38, 'F');
+        pdf.circle(pageWidth + 8, pageHeight + 8, 38, 'F');
+
+        const margin = 12;
+        pdf.setFillColor(226, 232, 240);
+        pdf.roundedRect(margin, margin, pageWidth - (margin * 2), pageHeight - (margin * 2), 6, 6, 'F');
+
+        const innerMargin = 15;
+        pdf.setFillColor(255, 255, 255);
+        pdf.roundedRect(innerMargin, innerMargin, pageWidth - (innerMargin * 2), pageHeight - (innerMargin * 2), 5, 5, 'F');
+
+        pdf.setDrawColor(51, 65, 85);
+        pdf.setLineWidth(0.8);
+        pdf.roundedRect(innerMargin, innerMargin, pageWidth - (innerMargin * 2), pageHeight - (innerMargin * 2), 5, 5, 'S');
+
+        pdf.setDrawColor(203, 213, 225);
+        pdf.setLineWidth(0.4);
+        pdf.roundedRect(innerMargin + 3, innerMargin + 3, pageWidth - ((innerMargin + 3) * 2), pageHeight - ((innerMargin + 3) * 2), 4, 4, 'S');
+
+        pdf.setFillColor(248, 250, 252);
+        pdf.setDrawColor(203, 213, 225);
+        pdf.roundedRect((pageWidth / 2) - 35, 25, 70, 10, 3, 3, 'FD');
+        pdf.setTextColor(51, 65, 85);
+        pdf.setFontSize(10);
+        pdf.text('INTERVOX • CERTIFIED', pageWidth / 2, 31.5, { align: 'center' });
+
+        pdf.setTextColor(15, 23, 42);
+        pdf.setFont('times', 'bold');
+        pdf.setFontSize(30);
+        pdf.text('SERTIFIKAT LATIHAN INTERVIEW', pageWidth / 2, 48, { align: 'center' });
+
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(12);
+        pdf.setTextColor(71, 85, 105);
+        pdf.text('Dokumen resmi penyelesaian simulasi interview', pageWidth / 2, 56, { align: 'center' });
+        pdf.text('Diberikan kepada', pageWidth / 2, 69, { align: 'center' });
+
+        pdf.setTextColor(30, 64, 175);
+        pdf.setFont('times', 'bolditalic');
+        pdf.setFontSize(34);
+        pdf.text(candidateName, pageWidth / 2, 85, { align: 'center' });
+
+        pdf.setDrawColor(250, 204, 21);
+        pdf.setLineWidth(1.2);
+        pdf.line((pageWidth / 2) - 56, 89, (pageWidth / 2) + 56, 89);
+
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(12);
+        pdf.setTextColor(51, 65, 85);
+        const description = `atas penyelesaian sesi latihan interview untuk posisi ${jobRole} di ${company}.`;
+        const descLines = pdf.splitTextToSize(description, 210);
+        pdf.text(descLines, pageWidth / 2, 100, { align: 'center' });
+
+        const metadataTop = 116;
+        pdf.setFillColor(248, 250, 252);
+        pdf.setDrawColor(203, 213, 225);
+        pdf.roundedRect(34, metadataTop, pageWidth - 68, 36, 3, 3, 'FD');
+
+        pdf.setTextColor(15, 23, 42);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(11);
+        pdf.text('Nomor Sertifikat', 40, metadataTop + 10);
+        pdf.text('Tanggal Terbit', 148, metadataTop + 10);
+        pdf.text('Nilai Akhir', 40, metadataTop + 24);
+        pdf.text('Predikat', 148, metadataTop + 24);
+
+        pdf.setFont('helvetica', 'normal');
+        pdf.setTextColor(51, 65, 85);
+        pdf.text(`: ${certificateNumber}`, 74, metadataTop + 10);
+        pdf.text(`: ${issuedAt}`, 175, metadataTop + 10);
+        pdf.text(`: ${finalScore}`, 74, metadataTop + 24);
+        pdf.text(`: ${predicate}`, 175, metadataTop + 24);
+
+        const filenameSafe = candidateName
+            .trim()
+            .toLowerCase()
+            .normalize('NFKD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/(^-|-$)/g, '') || 'kandidat';
+
+        pdf.save(`sertifikat-latihan-${filenameSafe}.pdf`);
+    };
+
+    if (!report) {
+        return (
+            <div className="container mx-auto px-4 py-12 max-w-3xl">
+                <h1 className="text-2xl font-bold text-slate-900 mb-2">Laporan tidak ditemukan</h1>
+                <Link href="/reports" className="text-indigo-600 hover:underline">Kembali ke daftar laporan</Link>
+            </div>
+        );
+    }
+
+    if (report.adminOnly && !isAdmin) {
+        return (
+            <div className="container mx-auto px-4 py-12 max-w-3xl">
+                <h1 className="text-2xl font-bold text-slate-900 mb-2">Akses ditolak</h1>
+                <p className="text-slate-600 mb-4">Laporan ini hanya tersedia untuk admin.</p>
+                <Link href="/reports" className="text-indigo-600 hover:underline">Kembali ke daftar laporan</Link>
+            </div>
+        );
+    }
+
     return (
         <div className="container mx-auto px-4 py-8 md:py-12 max-w-6xl">
             <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -353,6 +460,9 @@ export default function ReportDetailPage() {
                 </div>
                 <div className="flex gap-2 print:hidden">
                     <button onClick={() => window.print()} className="bg-indigo-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors flex items-center gap-2"><Download className="w-4 h-4" />Export PDF</button>
+                    {type === 'certificate' && (
+                        <button onClick={downloadCertificate} className="bg-white border border-slate-300 text-slate-700 px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors flex items-center gap-2" disabled={loading || !certificateRow}><Download className="w-4 h-4" />Download Sertifikat PDF</button>
+                    )}
                     {report.exportTypes.includes('Excel') && (
                         <button onClick={downloadCsv} className="bg-white border border-slate-300 text-slate-700 px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors flex items-center gap-2"><FileSpreadsheet className="w-4 h-4" />Export Excel</button>
                     )}
@@ -399,30 +509,64 @@ export default function ReportDetailPage() {
 
             <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden print:overflow-visible">
                 {error && <p className="px-4 py-3 text-sm text-red-600 border-b border-slate-100">{error}</p>}
-                <div className="overflow-x-auto print:overflow-visible">
-                    <table className="w-full text-sm print:table-fixed">
-                        <thead className="bg-slate-50 text-slate-600">
-                            <tr>
-                                {headers.map((header) => (
-                                    <th key={header} className="px-4 py-3 text-left font-semibold whitespace-nowrap print:whitespace-normal">{header}</th>
-                                ))}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {loading ? (
-                                <tr><td className="px-4 py-4 text-slate-500" colSpan={Math.max(headers.length, 1)}>Memuat data laporan...</td></tr>
-                            ) : rows.length === 0 ? (
-                                <tr><td className="px-4 py-4 text-slate-500" colSpan={Math.max(headers.length, 1)}>Belum ada data laporan untuk ditampilkan.</td></tr>
-                            ) : rows.map((row, index) => (
-                                <tr key={index} className="border-t border-slate-100">
+
+                {type === 'certificate' ? (
+                    <div className="p-6 md:p-10">
+                        {loading ? (
+                            <p className="text-slate-500">Memuat data laporan...</p>
+                        ) : !certificateRow ? (
+                            <p className="text-slate-500">Belum ada data sertifikat untuk ditampilkan.</p>
+                        ) : (
+                            <div className="p-[6px] rounded-3xl bg-gradient-to-br from-slate-300 via-indigo-200 to-amber-200">
+                                <div className="relative overflow-hidden border-2 border-slate-700 rounded-[20px] px-6 py-8 md:px-12 md:py-12 text-center bg-gradient-to-b from-white to-slate-50">
+                                    <div className="absolute -top-20 -left-20 h-44 w-44 rounded-full border-2 border-slate-300/70" />
+                                    <div className="absolute -top-20 -right-20 h-44 w-44 rounded-full border-2 border-slate-300/70" />
+                                    <div className="absolute -bottom-20 -left-20 h-44 w-44 rounded-full border-2 border-slate-300/70" />
+                                    <div className="absolute -bottom-20 -right-20 h-44 w-44 rounded-full border-2 border-slate-300/70" />
+                                    <p className="inline-flex items-center justify-center px-4 py-1 rounded-full border border-slate-300 bg-slate-50 text-[11px] tracking-[0.16em] font-bold text-slate-600">INTERVOX • CERTIFIED</p>
+                                    <h2 className="text-2xl md:text-4xl font-bold text-slate-900 mt-4">Sertifikat Latihan Interview</h2>
+                                    <p className="text-slate-600 mt-2">Dokumen resmi penyelesaian simulasi interview</p>
+                                    <p className="text-slate-600 mt-8">Diberikan kepada</p>
+                                    <p className="text-3xl md:text-5xl font-extrabold text-indigo-800 mt-2 underline decoration-amber-300 decoration-4 underline-offset-8">{String(certificateRow['Nama Kandidat'] ?? '-')}</p>
+                                    <p className="text-slate-600 mt-8 max-w-3xl mx-auto">atas penyelesaian sesi latihan interview untuk posisi <span className="font-semibold text-slate-900">{String(certificateRow['Posisi'] ?? '-')}</span> di <span className="font-semibold text-slate-900">{String(certificateRow['Perusahaan'] ?? '-')}</span>.</p>
+
+                                    <div className="mt-8 grid md:grid-cols-2 gap-3 text-left bg-slate-50/95 border border-slate-200 rounded-xl p-4">
+                                        <p className="text-slate-700"><span className="font-semibold text-slate-900">Nomor Sertifikat:</span> {String(certificateRow['Nomor Sertifikat'] ?? '-')}</p>
+                                        <p className="text-slate-700"><span className="font-semibold text-slate-900">Tanggal Terbit:</span> {String(certificateRow['Tanggal Terbit'] ?? '-')}</p>
+                                        <p className="text-slate-700"><span className="font-semibold text-slate-900">Nilai Akhir:</span> {String(certificateRow['Nilai Akhir'] ?? '-')}</p>
+                                        <p className="text-slate-700"><span className="font-semibold text-slate-900">Predikat:</span> {String(certificateRow['Predikat'] ?? '-')}</p>
+                                    </div>
+
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                ) : (
+                    <div className="overflow-x-auto print:overflow-visible">
+                        <table className="w-full text-sm print:table-fixed">
+                            <thead className="bg-slate-50 text-slate-600">
+                                <tr>
                                     {headers.map((header) => (
-                                        <td key={header} className="px-4 py-3 text-slate-700 whitespace-nowrap print:whitespace-normal break-words">{String(row[header] ?? '-')}</td>
+                                        <th key={header} className="px-4 py-3 text-left font-semibold whitespace-nowrap print:whitespace-normal">{header}</th>
                                     ))}
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+                            </thead>
+                            <tbody>
+                                {loading ? (
+                                    <tr><td className="px-4 py-4 text-slate-500" colSpan={Math.max(headers.length, 1)}>Memuat data laporan...</td></tr>
+                                ) : rows.length === 0 ? (
+                                    <tr><td className="px-4 py-4 text-slate-500" colSpan={Math.max(headers.length, 1)}>Belum ada data laporan untuk ditampilkan.</td></tr>
+                                ) : rows.map((row, index) => (
+                                    <tr key={index} className="border-t border-slate-100">
+                                        {headers.map((header) => (
+                                            <td key={header} className="px-4 py-3 text-slate-700 whitespace-nowrap print:whitespace-normal break-words">{String(row[header] ?? '-')}</td>
+                                        ))}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
             </div>
         </div>
     );
