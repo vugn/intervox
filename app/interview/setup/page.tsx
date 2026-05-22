@@ -5,9 +5,8 @@ import { useRouter } from 'next/navigation';
 import { UploadCloud, User, Briefcase, Settings, Play, X, FileText, Loader2 } from 'lucide-react';
 import * as motion from 'motion/react-client';
 import { useAuth } from '@/hooks/use-auth';
-import { storage } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 import { createSession, listCategories } from '@/lib/data-service';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 export default function InterviewSetup() {
   const router = useRouter();
@@ -45,7 +44,7 @@ export default function InterviewSetup() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setFormData((prev) => ({
       ...prev,
-      name: userData?.displayName || user.displayName || prev.name,
+      name: userData?.displayName || user.user_metadata?.full_name || prev.name,
       email: userData?.email || user.email || prev.email,
       education: userData?.education || prev.education,
       yearsExperience: userData?.yearsExperience || prev.yearsExperience,
@@ -142,17 +141,23 @@ export default function InterviewSetup() {
     let cvUrl = existingCvUrl || '';
 
     try {
-      // Upload CV to Firebase Storage if provided
+      // Upload CV to Supabase Storage if provided
       if (cvFile && user) {
         const safeFileName = cvFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-        const storageRef = ref(storage, `cv/${user.uid}/${Date.now()}_${safeFileName}`);
-        const uploadResult = await uploadBytes(storageRef, cvFile);
-        cvUrl = await getDownloadURL(uploadResult.ref);
+        const filePath = `${user.id}/${Date.now()}_${safeFileName}`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('cv')
+          .upload(filePath, cvFile);
+        if (uploadError) throw uploadError;
+        const { data: { publicUrl } } = supabase.storage
+          .from('cv')
+          .getPublicUrl(uploadData.path);
+        cvUrl = publicUrl;
       }
 
       if (user) {
         sessionId = await createSession({
-          userId: user.uid,
+          userId: user.id,
           candidateName: formData.name,
           candidateEmail: formData.email,
           moduleType: formData.interviewType,

@@ -16,7 +16,7 @@ export default function Dashboard() {
     const fetchSessions = async () => {
       if (!user) return;
       try {
-        const sessionsData = await listSessionsByUser(user.uid);
+        const sessionsData = await listSessionsByUser(user.id);
         setSessions(sessionsData as any[]);
       } catch (error) {
         console.error("Error fetching sessions:", error);
@@ -46,7 +46,7 @@ export default function Dashboard() {
     <div className="container mx-auto px-4 py-8 max-w-7xl">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-display font-bold text-slate-900">Halo, {userData?.displayName || user?.displayName || 'Pengguna'} 👋</h1>
+          <h1 className="text-2xl md:text-3xl font-display font-bold text-slate-900">Halo, {userData?.displayName || userData?.fullName || user?.user_metadata?.full_name || 'Pengguna'} 👋</h1>
           <p className="text-slate-500 mt-1 text-sm">Pantau progres latihan interview kamu.</p>
         </div>
         <div className="flex items-center gap-2">

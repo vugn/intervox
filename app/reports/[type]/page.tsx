@@ -47,7 +47,7 @@ export default function ReportDetailPage() {
     const [error, setError] = useState('');
 
     const report = REPORT_ITEMS.find((item) => item.type === type);
-    const isAdmin = userData?.role === 'admin';
+    const isAdmin = ['lecturer', 'head_of_program'].includes(userData?.role);
 
     const isSessionBasedReport = ['transcript', 'strength-weakness', 'answer-comparison', 'development-recommendation', 'certificate'].includes(type);
 
@@ -59,7 +59,7 @@ export default function ReportDetailPage() {
                 const isAdminReport = ['active-participants', 'module-statistics', 'difficulty-analysis'].includes(type);
                 const sessionsRaw: any[] = isAdminReport
                     ? await listAllSessions()
-                    : (user ? await listSessionsByUser(user.uid) : []);
+                    : (user ? await listSessionsByUser(user.id) : []);
 
                 setSessionOptions(sessionsRaw);
 
@@ -126,7 +126,7 @@ export default function ReportDetailPage() {
                     case 'score-evaluation': {
                         dynamicRows = sessions.slice(0, 20).map((session: any) => ({
                             Sesi: String(session.id),
-                            Kandidat: String(session.candidateName || userData?.displayName || user?.displayName || '-'),
+                            Kandidat: String(session.candidateName || userData?.displayName || user?.user_metadata?.full_name || '-'),
                             Posisi: String(session.jobRole || '-'),
                             Modul: String(session.moduleType || '-'),
                             Status: String(session.status || '-'),
@@ -287,7 +287,7 @@ export default function ReportDetailPage() {
 
                         dynamicRows = top ? [{
                             'Nomor Sertifikat': `INTVX-${String(top.id).slice(0, 8).toUpperCase()}`,
-                            'Nama Kandidat': String(top.candidateName || userData?.displayName || user?.displayName || '-'),
+                            'Nama Kandidat': String(top.candidateName || userData?.displayName || user?.user_metadata?.full_name || '-'),
                             Posisi: String(top.jobRole || '-'),
                             Perusahaan: String(top.company || '-'),
                             'Nilai Akhir': finalScore,

@@ -1,13 +1,9 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState } from 'react';
-import {
-  User, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut,
-  createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile,
-  sendPasswordResetEmail,
-} from 'firebase/auth';
-import { auth } from '../lib/firebase';
+import { supabase } from '@/lib/supabase';
 import { getUserByUid, upsertUser } from '@/lib/data-service';
+import type { User, Session } from '@supabase/supabase-js';
 
 interface AuthContextType {
   user: User | null;
@@ -33,151 +29,143 @@ const AuthContext = createContext<AuthContextType>({
 
 export const useAuth = () => useContext(AuthContext);
 
-const adminEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '')
-  .split(',')
-  .map(email => email.trim().toLowerCase())
-  .filter(Boolean);
-
-const isAdminEmail = (email?: string | null) => {
-  if (!email) return false;
-  return adminEmails.includes(email.toLowerCase());
-};
-
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [userData, setUserData] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const isCaptureMockAuth =
-      typeof window !== 'undefined' &&
-      new URLSearchParams(window.location.search).get('mockAuth') === '1';
-
-    if (isCaptureMockAuth) {
-      const mockUser = {
-        uid: 'capture-admin',
-        email: 'capture-admin@intervox.local',
-        displayName: 'Capture Admin',
-      } as User;
-
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setUser(mockUser);
-      setUserData({
-        uid: mockUser.uid,
-        email: mockUser.email,
-        displayName: mockUser.displayName,
-        role: 'admin',
-        department: 'Teknik Informatika',
-        faculty: 'FTI',
-      });
-      setLoading(false);
-      return () => { };
-    }
-
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      setUser(currentUser);
-      if (currentUser) {
-        try {
-          const existingUser = await getUserByUid(currentUser.uid);
-          const forceAdmin = isAdminEmail(currentUser.email);
-
-          if (existingUser) {
-            const mergedUser = {
-              ...existingUser,
-              role: forceAdmin ? 'admin' : (existingUser as any).role || 'student',
-            };
-            if (forceAdmin && (existingUser as any).role !== 'admin') {
-              await upsertUser(currentUser.uid, {
-                ...mergedUser,
-                updatedAt: new Date().toISOString(),
-              });
-            }
-            setUserData(mergedUser);
-          } else {
-            const newUserData = {
-              uid: currentUser.uid,
-              email: currentUser.email,
-              displayName: currentUser.displayName,
-              photoURL: currentUser.photoURL,
-              role: forceAdmin ? 'admin' : 'student',
-              createdAt: new Date().toISOString(),
-            };
-            await upsertUser(currentUser.uid, newUserData);
-            setUserData(newUserData);
-          }
-        } catch (error) {
-          console.error('Failed to sync user data:', error);
-          setUserData({
-            uid: currentUser.uid,
-            email: currentUser.email,
-            displayName: currentUser.displayName,
-            photoURL: currentUser.photoURL,
-            role: isAdminEmail(currentUser.email) ? 'admin' : 'student',
-          });
-        }
-      } else {
-        setUserData(null);
+    // Get initial session
+    const initAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        setUser(session.user);
+        await syncUserData(session.user);
       }
       setLoading(false);
-    });
+    };
 
-    return () => unsubscribe();
+    initAuth();
+
+    // Listen to auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
+
+        if (currentUser) {
+          await syncUserData(currentUser);
+        } else {
+          setUserData(null);
+        }
+        setLoading(false);
+      }
+    );
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
-  const signInWithGoogle = async () => {
-    const provider = new GoogleAuthProvider();
+  const syncUserData = async (supaUser: User) => {
     try {
-      await signInWithPopup(auth, provider);
+      const existingUser = await getUserByUid(supaUser.id);
+
+      if (existingUser) {
+        setUserData(existingUser);
+      } else {
+        // New user — create record
+        const newUserData = {
+          uid: supaUser.id,
+          email: supaUser.email,
+          displayName:
+            supaUser.user_metadata?.full_name ??
+            supaUser.user_metadata?.name ??
+            supaUser.email?.split('@')[0] ??
+            '',
+          photoURL: supaUser.user_metadata?.avatar_url ?? null,
+          role: 'student',
+          createdAt: new Date().toISOString(),
+        };
+        await upsertUser(supaUser.id, newUserData);
+        setUserData({
+          ...newUserData,
+          fullName: newUserData.displayName,
+        });
+      }
     } catch (error) {
-      console.error('Error signing in with Google', error);
-      throw error;
+      console.error('Failed to sync user data:', error);
+      setUserData({
+        uid: supaUser.id,
+        email: supaUser.email,
+        displayName:
+          supaUser.user_metadata?.full_name ??
+          supaUser.email?.split('@')[0] ??
+          '',
+        role: 'student',
+      });
     }
+  };
+
+  const signInWithGoogle = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/dashboard`,
+      },
+    });
+    if (error) throw error;
   };
 
   const signInWithEmail = async (email: string, password: string) => {
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
-    } catch (error) {
-      console.error('Error signing in with email', error);
-      throw error;
-    }
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    if (error) throw error;
   };
 
   const signUpWithEmail = async (email: string, password: string, displayName: string) => {
-    try {
-      const credential = await createUserWithEmailAndPassword(auth, email, password);
-      await updateProfile(credential.user, { displayName });
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: displayName,
+        },
+      },
+    });
+    if (error) throw error;
+
+    // Create user record immediately if signup doesn't require email confirmation
+    if (data.user) {
       const newUserData = {
-        uid: credential.user.uid,
-        email: credential.user.email,
+        uid: data.user.id,
+        email: data.user.email,
         displayName,
         photoURL: null,
-        role: isAdminEmail(credential.user.email) ? 'admin' : 'student',
+        role: 'student',
         createdAt: new Date().toISOString(),
       };
-      await upsertUser(credential.user.uid, newUserData);
-      setUserData(newUserData);
-    } catch (error) {
-      console.error('Error signing up with email', error);
-      throw error;
+      await upsertUser(data.user.id, newUserData);
+      setUserData({
+        ...newUserData,
+        fullName: displayName,
+      });
     }
   };
 
   const resetPassword = async (email: string) => {
-    try {
-      await sendPasswordResetEmail(auth, email);
-    } catch (error) {
-      console.error('Error sending reset email', error);
-      throw error;
-    }
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth?tab=reset`,
+    });
+    if (error) throw error;
   };
 
   const logout = async () => {
-    try {
-      await signOut(auth);
-    } catch (error) {
-      console.error('Error signing out', error);
-    }
+    const { error } = await supabase.auth.signOut();
+    if (error) console.error('Error signing out', error);
+    setUserData(null);
   };
 
   return (

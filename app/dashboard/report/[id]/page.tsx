@@ -23,8 +23,8 @@ export default function ReportPage() {
 
         if (sessionData) {
           const data: any = sessionData;
-          // Ensure user owns this session or is admin (for now, just check ownership)
-          if (data.userId === user.uid) {
+          // RLS handles access control at the database level
+          if (data) {
             setSession({ id: (sessionData as any).id || id, ...data });
           } else {
             console.error("Unauthorized access");

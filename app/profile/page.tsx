@@ -3,13 +3,11 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { upsertUser } from '@/lib/data-service';
-import { updateProfile, EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
-import { auth, storage } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { User, Save, ArrowLeft, Loader2, CheckCircle, UploadCloud, FileText } from 'lucide-react';
 import * as motion from 'motion/react-client';
-import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 
 export default function ProfilePage() {
     const { user, userData, loading } = useAuth();
@@ -40,7 +38,7 @@ export default function ProfilePage() {
     useEffect(() => {
         if (userData) {
             setFormData({
-                displayName: userData.displayName || user?.displayName || '',
+                displayName: userData.displayName || userData.fullName || '',
                 phone: userData.phone || '',
                 university: userData.university || '',
                 major: userData.major || '',
@@ -50,7 +48,7 @@ export default function ProfilePage() {
                 bio: userData.bio || '',
             });
         }
-    }, [userData, user]);
+    }, [userData]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -60,13 +58,25 @@ export default function ProfilePage() {
 
         try {
             let cvPath: string | undefined;
+
+            // Upload CV to Supabase Storage
             if (cvFile) {
-                const cvRef = ref(storage, `cv/${user.uid}/${Date.now()}_${cvFile.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`);
-                const uploadResult = await uploadBytes(cvRef, cvFile);
-                cvPath = await getDownloadURL(uploadResult.ref);
+                const safeFileName = cvFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+                const filePath = `${user.id}/${Date.now()}_${safeFileName}`;
+                const { data: uploadData, error: uploadError } = await supabase.storage
+                    .from('cv')
+                    .upload(filePath, cvFile);
+
+                if (uploadError) throw uploadError;
+
+                const { data: { publicUrl } } = supabase.storage
+                    .from('cv')
+                    .getPublicUrl(uploadData.path);
+
+                cvPath = publicUrl;
             }
 
-            await upsertUser(user.uid, {
+            await upsertUser(user.id, {
                 displayName: formData.displayName,
                 phone: formData.phone,
                 university: formData.university,
@@ -79,13 +89,16 @@ export default function ProfilePage() {
                 updatedAt: new Date().toISOString(),
             });
 
-            // Update Firebase Auth display name
-            if (auth.currentUser && formData.displayName !== user.displayName) {
-                await updateProfile(auth.currentUser, { displayName: formData.displayName });
+            // Update Supabase Auth metadata (display name)
+            if (formData.displayName) {
+                await supabase.auth.updateUser({
+                    data: { full_name: formData.displayName },
+                });
             }
 
+            // Update password if requested
             if (currentPassword || newPassword || confirmPassword) {
-                if (!currentPassword || !newPassword || !confirmPassword) {
+                if (!newPassword || !confirmPassword) {
                     throw new Error('Semua field password harus diisi untuk update password.');
                 }
                 if (newPassword !== confirmPassword) {
@@ -94,13 +107,13 @@ export default function ProfilePage() {
                 if (newPassword.length < 6) {
                     throw new Error('Password baru minimal 6 karakter.');
                 }
-                if (!auth.currentUser?.email) {
-                    throw new Error('User email tidak ditemukan untuk re-autentikasi.');
-                }
 
-                const credential = EmailAuthProvider.credential(auth.currentUser.email, currentPassword);
-                await reauthenticateWithCredential(auth.currentUser, credential);
-                await updatePassword(auth.currentUser, newPassword);
+                const { error: pwError } = await supabase.auth.updateUser({
+                    password: newPassword,
+                });
+
+                if (pwError) throw pwError;
+
                 setCurrentPassword('');
                 setNewPassword('');
                 setConfirmPassword('');
@@ -108,9 +121,9 @@ export default function ProfilePage() {
 
             setSaved(true);
             setTimeout(() => setSaved(false), 3000);
-        } catch (err) {
+        } catch (err: any) {
             console.error('Error updating profile:', err);
-            setError('Gagal menyimpan profil. Coba lagi.');
+            setError(err?.message || 'Gagal menyimpan profil. Coba lagi.');
         } finally {
             setIsSaving(false);
         }
@@ -141,8 +154,8 @@ export default function ProfilePage() {
 
                 {/* Avatar Section */}
                 <div className="flex items-center gap-4 p-5 bg-white rounded-2xl border border-slate-200 mb-6">
-                    {user?.photoURL ? (
-                        <img src={user.photoURL} alt="Avatar" className="w-16 h-16 rounded-full object-cover" />
+                    {user?.user_metadata?.avatar_url ? (
+                        <img src={user.user_metadata.avatar_url} alt="Avatar" className="w-16 h-16 rounded-full object-cover" />
                     ) : (
                         <div className="w-16 h-16 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-2xl flex-shrink-0">
                             {(formData.displayName || user?.email || 'U').charAt(0).toUpperCase()}

@@ -18,7 +18,7 @@ export default function Header() {
     { href: '/profile', label: 'Profil' },
   ];
 
-  const isAdmin = userData?.role === 'admin';
+  const isAdmin = ['lecturer', 'head_of_program'].includes(userData?.role);
   const navLinks = isAdmin
     ? [...baseLinks.slice(0, 3), { href: '/admin', label: 'Admin' }, baseLinks[3]]
     : baseLinks;
@@ -46,14 +46,14 @@ export default function Header() {
           {user ? (
             <div className="flex items-center gap-3">
               <Link href="/profile" className="flex items-center gap-2">
-                {user.photoURL ? (
-                  <img src={user.photoURL} alt={user.displayName || 'User'} className="w-8 h-8 rounded-full object-cover" />
+                {user.user_metadata?.avatar_url ? (
+                  <img src={user.user_metadata.avatar_url} alt={user.user_metadata?.full_name || 'User'} className="w-8 h-8 rounded-full object-cover" />
                 ) : (
                   <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-sm">
-                    {(user.displayName || user.email || 'U').charAt(0).toUpperCase()}
+                    {(user.user_metadata?.full_name || user.email || 'U').charAt(0).toUpperCase()}
                   </div>
                 )}
-                <span className="text-sm font-medium text-slate-700">{user.displayName || user.email?.split('@')[0]}</span>
+                <span className="text-sm font-medium text-slate-700">{user.user_metadata?.full_name || user.email?.split('@')[0]}</span>
               </Link>
               <button onClick={logout} className="text-slate-400 hover:text-red-500 transition-colors p-1 rounded-lg" title="Keluar">
                 <LogOut className="w-4 h-4" />
@@ -97,14 +97,14 @@ export default function Header() {
               {user ? (
                 <div className="flex items-center justify-between px-4 py-2">
                   <div className="flex items-center gap-2">
-                    {user.photoURL ? (
-                      <img src={user.photoURL} alt="User" className="w-8 h-8 rounded-full object-cover" />
+                    {user.user_metadata?.avatar_url ? (
+                      <img src={user.user_metadata.avatar_url} alt="User" className="w-8 h-8 rounded-full object-cover" />
                     ) : (
                       <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-sm">
-                        {(user.displayName || user.email || 'U').charAt(0).toUpperCase()}
+                        {(user.user_metadata?.full_name || user.email || 'U').charAt(0).toUpperCase()}
                       </div>
                     )}
-                    <span className="text-sm font-medium text-slate-700 max-w-[160px] truncate">{user.displayName || user.email}</span>
+                    <span className="text-sm font-medium text-slate-700 max-w-[160px] truncate">{user.user_metadata?.full_name || user.email}</span>
                   </div>
                   <button onClick={() => { logout(); setMobileOpen(false); }} className="text-slate-400 hover:text-red-500 transition-colors text-xs flex items-center gap-1">
                     <LogOut className="w-4 h-4" />

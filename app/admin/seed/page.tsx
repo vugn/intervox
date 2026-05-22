@@ -254,10 +254,10 @@ export default function SeedPage() {
         setSeededCount(0);
 
         try {
-            await upsertUser(user.uid, {
+            await upsertUser(user.id, {
                 email: user.email,
-                displayName: user.displayName || 'Admin Seeder',
-                role: 'admin',
+                displayName: user.user_metadata?.full_name || 'Admin Seeder',
+                role: 'head_of_program',
                 updatedAt: new Date().toISOString(),
             });
 
@@ -281,7 +281,7 @@ export default function SeedPage() {
                         questionText: question.questionText,
                         idealKeywords: question.idealKeywords,
                         difficultyLevel: question.difficultyLevel,
-                        createdBy: user.uid,
+                        createdBy: user.id,
                     });
                 }
             }
@@ -297,7 +297,7 @@ export default function SeedPage() {
                 await createLecturer(lecturer as any);
             }
 
-            await seedSessions(user.uid, SAMPLE_SESSIONS as unknown as Record<string, unknown>[]);
+            await seedSessions(user.id, SAMPLE_SESSIONS as unknown as Record<string, unknown>[]);
             setSeededCount(
                 SAMPLE_SESSIONS.length +
                 SAMPLE_CATEGORIES.length +

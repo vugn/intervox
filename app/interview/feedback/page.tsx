@@ -75,7 +75,7 @@ function FeedbackContent() {
                 });
 
                 await createUserFeedback({
-                    userId: user.uid,
+                    userId: user.id,
                     sessionId,
                     rating: formData.platformRating,
                     comments: formData.platformFeedback || formData.whatToImprove || '',
