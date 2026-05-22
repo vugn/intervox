@@ -1,2 +1,142 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
+
+body.wf-mode {
+  background: #f5f5f5 !important;
+  color: #1f2937 !important;
+}
+
+body.wf-mode * {
+  animation: none !important;
+  transition: none !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  background-image: none !important;
+}
+
+body.wf-mode h1,
+body.wf-mode h2,
+body.wf-mode h3,
+body.wf-mode h4,
+body.wf-mode h5,
+body.wf-mode h6,
+body.wf-mode p,
+body.wf-mode span,
+body.wf-mode label,
+body.wf-mode li,
+body.wf-mode a,
+body.wf-mode strong {
+  color: #374151 !important;
+}
+
+body.wf-mode div,
+body.wf-mode section,
+body.wf-mode article,
+body.wf-mode aside,
+body.wf-mode nav,
+body.wf-mode header,
+body.wf-mode footer,
+body.wf-mode main,
+body.wf-mode form,
+body.wf-mode table,
+body.wf-mode thead,
+body.wf-mode tbody,
+body.wf-mode tr,
+body.wf-mode td,
+body.wf-mode th {
+  border-color: #9ca3af !important;
+}
+
+body.wf-mode button,
+body.wf-mode [role="button"],
+body.wf-mode input,
+body.wf-mode textarea,
+body.wf-mode select {
+  background: #ffffff !important;
+  color: #111827 !important;
+  border: 1px solid #9ca3af !important;
+}
+
+body.wf-mode button,
+body.wf-mode [role="button"] {
+  font-weight: 600;
+}
+
+body.wf-mode img,
+body.wf-mode svg,
+body.wf-mode canvas,
+body.wf-mode video {
+  filter: grayscale(100%);
+  opacity: 0.75;
+}
+
+body.wf-mode img,
+body.wf-mode video,
+body.wf-mode canvas {
+  border: 1px solid #9ca3af !important;
+  background-color: #e5e7eb !important;
+}
+
+body.wf-mode *:has(> img),
+body.wf-mode *:has(> video),
+body.wf-mode *:has(> canvas) {
+  position: relative;
+  overflow: hidden;
+}
+
+body.wf-mode *:has(> img)::before,
+body.wf-mode *:has(> video)::before,
+body.wf-mode *:has(> canvas)::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 1px solid #9ca3af;
+  background:
+    linear-gradient(
+      45deg,
+      transparent calc(50% - 1px),
+      #9ca3af calc(50% - 1px),
+      #9ca3af calc(50% + 1px),
+      transparent calc(50% + 1px)
+    ),
+    linear-gradient(
+      -45deg,
+      transparent calc(50% - 1px),
+      #9ca3af calc(50% - 1px),
+      #9ca3af calc(50% + 1px),
+      transparent calc(50% + 1px)
+    ),
+    #e5e7eb;
+  pointer-events: none;
+  z-index: 2;
+}
+
+body.wf-mode *:has(> img) > img,
+body.wf-mode *:has(> video) > video,
+body.wf-mode *:has(> canvas) > canvas {
+  opacity: 0 !important;
+}
+
+body.wf-mode .prose,
+body.wf-mode [class*="bg-"],
+body.wf-mode [class*="text-"],
+body.wf-mode [class*="border-"] {
+  color: #374151 !important;
+  border-color: #9ca3af !important;
+}
+
+body.wf-mode [class*="bg-"] {
+  background: #f3f4f6 !important;
+}
+
+body.wf-mode [class*="rounded-"] {
+  border-radius: 6px !important;
+}
+
+body.wf-mode nextjs-portal,
+body.wf-mode [data-nextjs-dev-tools-button],
+body.wf-mode [data-nextjs-toast],
+body.wf-mode [data-next-badge-root] {
+  display: none !important;
+  visibility: hidden !important;
+}

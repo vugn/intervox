@@ -6,7 +6,7 @@ import * as motion from 'motion/react-client';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useLiveAPI } from '@/hooks/use-live-api';
 import ReactMarkdown from 'react-markdown';
-import { updateSession } from '@/lib/data-service';
+import { listQuestionsByCategory, listScoringCriteria, saveAnalysisResult, saveConversationLogs, saveRecommendations, updateSession } from '@/lib/data-service';
 import { useAuth } from '@/hooks/use-auth';
 
 import { GoogleGenAI, Type } from '@google/genai';
@@ -24,6 +24,8 @@ function InterviewSessionContent() {
   const [showAudioSettings, setShowAudioSettings] = useState(false);
   const [audioInputs, setAudioInputs] = useState<MediaDeviceInfo[]>([]);
   const [audioOutputs, setAudioOutputs] = useState<MediaDeviceInfo[]>([]);
+  const [questionBankGuide, setQuestionBankGuide] = useState('');
+  const [scoringGuide, setScoringGuide] = useState('');
   const [inputDeviceId, setInputDeviceId] = useState('');
   const [outputDeviceId, setOutputDeviceId] = useState('');
   const transcriptContainerRef = useRef<HTMLDivElement | null>(null);
@@ -44,6 +46,7 @@ function InterviewSessionContent() {
   const sessionId = searchParams.get('sessionId');
   const interviewType = searchParams.get('interviewType') || 'Profesional';
   const moduleCategory = searchParams.get('moduleCategory') || 'General Interview';
+  const moduleCategoryId = searchParams.get('moduleCategoryId') || '';
   const inputDeviceParam = searchParams.get('inputDeviceId') || '';
   const outputDeviceParam = searchParams.get('outputDeviceId') || '';
 
@@ -52,6 +55,8 @@ You are Intervox, an expert technical interviewer conducting an interview for th
 Your personality is ${personality}. The difficulty level of this interview is ${difficulty}.
 ${jobDescription ? `\nHere is the job description for context:\n${jobDescription}\n` : ''}
 ${focusAreas ? `\nPlease focus your questions on these areas: ${focusAreas}.\n` : ''}
+${questionBankGuide ? `\nUse this question bank as guidance and prioritize these question styles:\n${questionBankGuide}\n` : ''}
+${scoringGuide ? `\nEvaluate candidate answers using these scoring criteria:\n${scoringGuide}\n` : ''}
 You only speak to your candidates in ${language}, no matter what language they speak to you in.
 You must speak with a standard ${language} accent.
 
@@ -98,6 +103,33 @@ You must speak with a standard ${language} accent.
     setInputDeviceId(inputDeviceParam);
     setOutputDeviceId(outputDeviceParam);
   }, [inputDeviceParam, outputDeviceParam]);
+
+  useEffect(() => {
+    const loadInterviewGuides = async () => {
+      try {
+        if (moduleCategoryId) {
+          const questionRows = await listQuestionsByCategory(moduleCategoryId);
+          const topQuestions = (questionRows as any[])
+            .slice(0, 8)
+            .map((item, index) => `${index + 1}. ${item.questionText || item.question || '-'}${item.idealKeywords ? ` (ideal keywords: ${item.idealKeywords})` : ''}`)
+            .join('\n');
+          setQuestionBankGuide(topQuestions);
+        }
+
+        const criteriaRows = await listScoringCriteria();
+        const activeCriteria = (criteriaRows as any[])
+          .filter((item) => item.isActive !== false)
+          .map((item) => `${item.criteriaName} (weight: ${item.weightScore || 0}%, keywords: ${item.idealKeywords || '-'}, note: ${item.description || '-'})`)
+          .join('\n');
+        setScoringGuide(activeCriteria);
+      } catch {
+        setQuestionBankGuide('');
+        setScoringGuide('');
+      }
+    };
+
+    loadInterviewGuides();
+  }, [moduleCategoryId]);
 
   useEffect(() => {
     const loadDevices = async () => {
@@ -200,6 +232,8 @@ You must speak with a standard ${language} accent.
           transcript: transcriptData,
         });
 
+        await saveConversationLogs(sessionId, transcriptData);
+
         // 2. Generate Analysis
         if (transcriptData.length > 2) {
           const clientGeminiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
@@ -212,6 +246,11 @@ You must speak with a standard ${language} accent.
           const analysisPrompt = `Analyze the following interview transcript for a ${role} position.
 Language: ${language}
 Difficulty: ${difficulty}
+Interview type: ${interviewType}
+Category: ${moduleCategory}
+
+Scoring criteria reference:
+${scoringGuide || 'Use balanced criteria for communication, technical depth, problem solving, and culture fit.'}
 
 Transcript:
 ${transcriptText}
@@ -276,17 +315,38 @@ Return ONLY a valid JSON object matching this schema:
             analysis: analysisResult,
             score: overallScore
           });
+
+          await saveAnalysisResult(sessionId, analysisResult);
+
+          const recommendations = (Array.isArray(analysisResult.weaknesses) ? analysisResult.weaknesses : []).map((item: string, index: number) => ({
+            recommendationText: `Fokus latihan pada: ${item}`,
+            recommendationType: 'improvement',
+            priority: index + 1,
+          }));
+
+          if (recommendations.length > 0) {
+            await saveRecommendations(sessionId, recommendations);
+          }
         } else {
+          const fallbackAnalysis = {
+            strengths: ["None"],
+            weaknesses: ["Interview was too short to evaluate"],
+            overallFeedback: "The interview was too short to provide a meaningful evaluation.",
+            scores: { communication: 0, technical: 0, problemSolving: 0, cultureFit: 0 }
+          };
+
           await updateSession(sessionId, {
             status: 'completed',
             score: 0,
-            analysis: {
-              strengths: ["None"],
-              weaknesses: ["Interview was too short to evaluate"],
-              overallFeedback: "The interview was too short to provide a meaningful evaluation.",
-              scores: { communication: 0, technical: 0, problemSolving: 0, cultureFit: 0 }
-            }
+            analysis: fallbackAnalysis
           });
+
+          await saveAnalysisResult(sessionId, fallbackAnalysis);
+          await saveRecommendations(sessionId, [{
+            recommendationText: 'Lanjutkan sesi wawancara lebih lama agar analisis lebih akurat.',
+            recommendationType: 'session-quality',
+            priority: 1,
+          }]);
         }
 
       } catch (error) {

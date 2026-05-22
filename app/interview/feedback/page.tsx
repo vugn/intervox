@@ -3,7 +3,7 @@
 import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
-import { updateSession } from '@/lib/data-service';
+import { createUserFeedback, updateSession } from '@/lib/data-service';
 import { Star, ThumbsUp, Loader2, ArrowRight, MessageSquare } from 'lucide-react';
 import * as motion from 'motion/react-client';
 
@@ -58,18 +58,28 @@ function FeedbackContent() {
 
         if (sessionId && user) {
             try {
+                const selfAssessmentPayload = {
+                    selfScore: formData.selfScore,
+                    confidenceLevel: formData.confidenceLevel,
+                    difficultyRating: formData.difficultyRating,
+                    whatWentWell: formData.whatWentWell,
+                    whatToImprove: formData.whatToImprove,
+                    platformRating: formData.platformRating,
+                    platformFeedback: formData.platformFeedback,
+                    wouldUseAgain: formData.wouldUseAgain,
+                    submittedAt: new Date().toISOString(),
+                };
+
                 await updateSession(sessionId, {
-                    selfAssessment: {
-                        selfScore: formData.selfScore,
-                        confidenceLevel: formData.confidenceLevel,
-                        difficultyRating: formData.difficultyRating,
-                        whatWentWell: formData.whatWentWell,
-                        whatToImprove: formData.whatToImprove,
-                        platformRating: formData.platformRating,
-                        platformFeedback: formData.platformFeedback,
-                        wouldUseAgain: formData.wouldUseAgain,
-                        submittedAt: new Date().toISOString(),
-                    },
+                    selfAssessment: selfAssessmentPayload,
+                });
+
+                await createUserFeedback({
+                    userId: user.uid,
+                    sessionId,
+                    rating: formData.platformRating,
+                    comments: formData.platformFeedback || formData.whatToImprove || '',
+                    selfAssessment: selfAssessmentPayload,
                 });
             } catch (err) {
                 console.error('Error saving feedback:', err);

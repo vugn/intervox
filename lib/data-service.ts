@@ -12,6 +12,242 @@ import {
   where,
 } from "firebase/firestore";
 
+const isCaptureMode = process.env.NEXT_PUBLIC_CAPTURE_MODE === "true";
+
+const captureCategories: CategoryItem[] = [
+  {
+    id: "cap-cat-1",
+    categoryName: "General Interview",
+    description: "Pertanyaan umum kesiapan kandidat",
+    moduleType: "Kerja",
+    difficultyLevel: "easy",
+    isActive: true,
+  },
+  {
+    id: "cap-cat-2",
+    categoryName: "Technical Interview",
+    description: "Pertanyaan teknis sesuai role",
+    moduleType: "Kerja",
+    difficultyLevel: "medium",
+    isActive: true,
+  },
+  {
+    id: "cap-cat-3",
+    categoryName: "Behavioral Interview",
+    description: "Pertanyaan perilaku dan komunikasi",
+    moduleType: "Kerja",
+    difficultyLevel: "medium",
+    isActive: true,
+  },
+  {
+    id: "cap-cat-4",
+    categoryName: "Case Interview",
+    description: "Studi kasus dan pemecahan masalah",
+    moduleType: "Kerja",
+    difficultyLevel: "hard",
+    isActive: true,
+  },
+];
+
+const captureQuestions: QuestionItem[] = [
+  {
+    id: "cap-q-1",
+    categoryId: "cap-cat-1",
+    questionText: "Ceritakan tentang diri Anda secara ringkas.",
+    idealKeywords: "ringkas, relevan, pengalaman",
+    difficultyLevel: "easy",
+  },
+  {
+    id: "cap-q-2",
+    categoryId: "cap-cat-1",
+    questionText: "Mengapa Anda tertarik dengan posisi ini?",
+    idealKeywords: "motivasi, kontribusi, value perusahaan",
+    difficultyLevel: "easy",
+  },
+  {
+    id: "cap-q-3",
+    categoryId: "cap-cat-2",
+    questionText: "Bagaimana Anda menjaga kualitas kode tim?",
+    idealKeywords: "code review, testing, lint, CI/CD",
+    difficultyLevel: "medium",
+  },
+  {
+    id: "cap-q-4",
+    categoryId: "cap-cat-2",
+    questionText: "Jelaskan pengalaman debugging issue produksi.",
+    idealKeywords: "root cause, monitoring, rollback, prevention",
+    difficultyLevel: "hard",
+  },
+  {
+    id: "cap-q-5",
+    categoryId: "cap-cat-3",
+    questionText: "Ceritakan konflik tim dan cara Anda menyelesaikannya.",
+    idealKeywords: "STAR, komunikasi, kolaborasi, hasil",
+    difficultyLevel: "medium",
+  },
+  {
+    id: "cap-q-6",
+    categoryId: "cap-cat-4",
+    questionText: "Apa pendekatan Anda meningkatkan retensi pengguna aplikasi?",
+    idealKeywords: "analisis data, hipotesis, eksperimen, metrik",
+    difficultyLevel: "hard",
+  },
+];
+
+const captureScoringCriteria: ScoringCriteriaItem[] = [
+  {
+    id: "cap-s-1",
+    criteriaName: "Communication",
+    weightScore: 25,
+    idealKeywords: "jelas, terstruktur, percaya diri",
+    description: "Kejelasan dan alur komunikasi",
+    isActive: true,
+  },
+  {
+    id: "cap-s-2",
+    criteriaName: "Technical Skills",
+    weightScore: 30,
+    idealKeywords: "akurasi, best-practice, relevan",
+    description: "Penguasaan teknis sesuai role",
+    isActive: true,
+  },
+  {
+    id: "cap-s-3",
+    criteriaName: "Problem Solving",
+    weightScore: 25,
+    idealKeywords: "analitis, sistematis, solusi",
+    description: "Kemampuan analisa dan solusi",
+    isActive: true,
+  },
+  {
+    id: "cap-s-4",
+    criteriaName: "Culture Fit",
+    weightScore: 20,
+    idealKeywords: "kolaborasi, adaptasi, nilai kerja",
+    description: "Kesesuaian sikap profesional",
+    isActive: true,
+  },
+];
+
+const captureLecturers: LecturerItem[] = [
+  {
+    id: "cap-l-1",
+    fullName: "Dr. Rina Pratama, S.Kom., M.Kom.",
+    email: "rina.pratama@kampus.ac.id",
+    department: "Teknik Informatika",
+    faculty: "FTI",
+    phone: "081200000001",
+  },
+  {
+    id: "cap-l-2",
+    fullName: "Andri Setiawan, S.T., M.T.",
+    email: "andri.setiawan@kampus.ac.id",
+    department: "Sistem Informasi",
+    faculty: "FTI",
+    phone: "081200000002",
+  },
+  {
+    id: "cap-l-3",
+    fullName: "Nadia Khairunnisa, S.Kom., M.Cs.",
+    email: "nadia.khairunnisa@kampus.ac.id",
+    department: "Teknik Informatika",
+    faculty: "FTI",
+    phone: "081200000003",
+  },
+];
+
+const captureSessions = [
+  {
+    id: "cap-sess-1",
+    userId: "capture-admin",
+    categoryId: "cap-cat-2",
+    moduleType: "Kerja",
+    roleTarget: "Frontend Developer",
+    jobRole: "Frontend Developer",
+    company: "PT Teknologi Maju",
+    language: "Indonesian",
+    difficulty: "medium",
+    status: "completed",
+    score: 84,
+    totalScore: 84,
+    candidateName: "Gusti Randa",
+    createdAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
+    completedAt: new Date(
+      Date.now() - 6 * 24 * 60 * 60 * 1000 + 35 * 60 * 1000,
+    ).toISOString(),
+    transcript: [
+      { role: "ai", text: "Perkenalkan diri Anda secara singkat." },
+      {
+        role: "user",
+        text: "Saya frontend developer dengan fokus React dan TypeScript.",
+      },
+      { role: "ai", text: "Bagaimana Anda memastikan kualitas kode tim?" },
+      {
+        role: "user",
+        text: "Saya gunakan code review, testing, linting, dan CI pipeline.",
+      },
+    ],
+    analysis: {
+      strengths: ["Jawaban terstruktur", "Punya praktik engineering yang baik"],
+      weaknesses: ["Contoh dampak bisnis belum cukup rinci"],
+      overallFeedback:
+        "Performa baik dengan fondasi teknis kuat. Perlu menambah contoh hasil terukur.",
+      scores: {
+        communication: 85,
+        technical: 82,
+        problemSolving: 84,
+        cultureFit: 85,
+      },
+    },
+  },
+  {
+    id: "cap-sess-2",
+    userId: "capture-admin",
+    categoryId: "cap-cat-3",
+    moduleType: "Kerja",
+    roleTarget: "Product Manager",
+    jobRole: "Product Manager",
+    company: "Startup Nusantara",
+    language: "Indonesian",
+    difficulty: "hard",
+    status: "completed",
+    score: 88,
+    totalScore: 88,
+    candidateName: "Gusti Randa",
+    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    completedAt: new Date(
+      Date.now() - 3 * 24 * 60 * 60 * 1000 + 42 * 60 * 1000,
+    ).toISOString(),
+    transcript: [
+      { role: "ai", text: "Ceritakan pengalaman memimpin inisiatif produk." },
+      {
+        role: "user",
+        text: "Saya memimpin redesign onboarding dan meningkatkan activation rate 18%.",
+      },
+      { role: "ai", text: "Bagaimana Anda memprioritaskan backlog?" },
+      {
+        role: "user",
+        text: "Saya pakai impact-effort matrix dan validasi dengan metrik bisnis.",
+      },
+    ],
+    analysis: {
+      strengths: [
+        "Komunikasi sangat baik",
+        "Berbasis data saat mengambil keputusan",
+      ],
+      weaknesses: ["Perlu memperdalam trade-off teknis"],
+      overallFeedback:
+        "Kandidat kuat untuk peran PM dengan bukti dampak yang jelas.",
+      scores: {
+        communication: 90,
+        technical: 82,
+        problemSolving: 89,
+        cultureFit: 91,
+      },
+    },
+  },
+];
+
 export type CategoryItem = {
   id: string;
   categoryName: string;
@@ -178,6 +414,10 @@ export async function updateSession(
 }
 
 export async function getSessionById(sessionId: string) {
+  if (isCaptureMode) {
+    return captureSessions.find((session) => session.id === sessionId) ?? null;
+  }
+
   const sessionRef = doc(db, "interview_sessions", sessionId);
   const snap = await getDoc(sessionRef);
 
@@ -201,6 +441,10 @@ export async function getSessionById(sessionId: string) {
 }
 
 export async function listSessionsByUser(userId: string) {
+  if (isCaptureMode) {
+    return captureSessions.filter((session) => session.userId === userId);
+  }
+
   const q = query(
     collection(db, "interview_sessions"),
     where("userId", "==", userId),
@@ -233,6 +477,10 @@ export async function listSessionsByUser(userId: string) {
 }
 
 export async function listAllSessions() {
+  if (isCaptureMode) {
+    return captureSessions;
+  }
+
   const q = query(
     collection(db, "interview_sessions"),
     orderBy("createdAt", "desc"),
@@ -277,6 +525,10 @@ export async function seedSessions(
 }
 
 export async function listCategories(): Promise<CategoryItem[]> {
+  if (isCaptureMode) {
+    return captureCategories;
+  }
+
   const q = query(
     collection(db, "interview_categories"),
     orderBy("createdAt", "desc"),
@@ -313,6 +565,10 @@ export async function updateCategory(id: string, input: Partial<CategoryItem>) {
 }
 
 export async function listQuestionsByCategory(categoryId: string) {
+  if (isCaptureMode) {
+    return captureQuestions.filter((item) => item.categoryId === categoryId);
+  }
+
   const q = query(
     collection(db, "question_banks"),
     where("categoryId", "==", categoryId),
@@ -345,6 +601,10 @@ export async function createQuestion(input: {
 }
 
 export async function listScoringCriteria() {
+  if (isCaptureMode) {
+    return captureScoringCriteria;
+  }
+
   const q = query(
     collection(db, "scoring_criteria"),
     orderBy("createdAt", "desc"),
@@ -373,6 +633,10 @@ export async function createScoringCriteria(
 }
 
 export async function listLecturers(): Promise<LecturerItem[]> {
+  if (isCaptureMode) {
+    return captureLecturers;
+  }
+
   const q = query(
     collection(db, "users"),
     where("role", "==", "lecturer"),
@@ -400,6 +664,19 @@ export async function createLecturer(input: Omit<LecturerItem, "id">) {
 }
 
 export async function getConversationBySession(sessionId: string) {
+  if (isCaptureMode) {
+    const session = captureSessions.find((item) => item.id === sessionId);
+    if (!session || !Array.isArray((session as any).transcript)) return [];
+    return (session as any).transcript.map((entry: any, index: number) => ({
+      id: `cap-log-${index}`,
+      sessionId,
+      questionText: entry.role === "ai" ? entry.text : "",
+      userAnswer: entry.role === "user" ? entry.text : "",
+      answerType: entry.role,
+      timestamp: Date.now() + index,
+    }));
+  }
+
   const q = query(
     collection(db, "conversation_logs"),
     where("sessionId", "==", sessionId),
@@ -427,6 +704,25 @@ export async function getConversationBySession(sessionId: string) {
 }
 
 export async function getAnalysisBySession(sessionId: string) {
+  if (isCaptureMode) {
+    const session = captureSessions.find((item) => item.id === sessionId);
+    const analysis = (session as any)?.analysis;
+    if (!analysis) return [];
+
+    return [
+      {
+        id: `cap-analysis-${sessionId}`,
+        communicationScore: analysis.scores?.communication,
+        technicalScore: analysis.scores?.technical,
+        problemSolvingScore: analysis.scores?.problemSolving,
+        cultureFitScore: analysis.scores?.cultureFit,
+        strengths: analysis.strengths,
+        weaknesses: analysis.weaknesses,
+        overallFeedback: analysis.overallFeedback,
+      },
+    ];
+  }
+
   const q = query(
     collection(db, "analysis_results"),
     where("sessionId", "==", sessionId),
@@ -462,6 +758,20 @@ export async function getAnalysisBySession(sessionId: string) {
 }
 
 export async function getRecommendationsBySession(sessionId: string) {
+  if (isCaptureMode) {
+    const analysisRows = await getAnalysisBySession(sessionId);
+    if (!analysisRows[0]) return [];
+    const weaknesses = Array.isArray((analysisRows[0] as any).weaknesses)
+      ? ((analysisRows[0] as any).weaknesses as string[])
+      : [];
+    return weaknesses.map((weakness, index) => ({
+      id: `cap-rec-${index}`,
+      recommendationText: `Fokus latihan pada: ${weakness}`,
+      recommendationType: "improvement",
+      priority: index + 1,
+    }));
+  }
+
   const q = query(
     collection(db, "ai_recommendations"),
     where("sessionId", "==", sessionId),
@@ -487,4 +797,99 @@ export async function getRecommendationsBySession(sessionId: string) {
     recommendationType: "improvement",
     priority: idx + 1,
   }));
+}
+
+export async function saveConversationLogs(
+  sessionId: string,
+  transcript: Array<{
+    role: string;
+    text: string;
+    timestamp?: number | string;
+  }>,
+) {
+  const logs = transcript
+    .map((entry, index) => ({
+      sessionId,
+      questionText: entry.role === "ai" ? entry.text : "",
+      userAnswer: entry.role === "user" ? entry.text : "",
+      answerType: entry.role,
+      timestamp: entry.timestamp ?? Date.now() + index,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }))
+    .filter((item) => item.questionText || item.userAnswer);
+
+  for (const log of logs) {
+    await addDoc(collection(db, "conversation_logs"), log);
+  }
+}
+
+export async function saveAnalysisResult(
+  sessionId: string,
+  analysis: {
+    strengths?: string[];
+    weaknesses?: string[];
+    overallFeedback?: string;
+    scores?: {
+      communication?: number;
+      technical?: number;
+      problemSolving?: number;
+      cultureFit?: number;
+    };
+  },
+) {
+  await addDoc(collection(db, "analysis_results"), {
+    sessionId,
+    communicationScore: analysis.scores?.communication ?? 0,
+    technicalScore: analysis.scores?.technical ?? 0,
+    problemSolvingScore: analysis.scores?.problemSolving ?? 0,
+    cultureFitScore: analysis.scores?.cultureFit ?? 0,
+    strengths: analysis.strengths ?? [],
+    weaknesses: analysis.weaknesses ?? [],
+    overallFeedback: analysis.overallFeedback ?? "",
+    analyzedAt: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  });
+}
+
+export async function saveRecommendations(
+  sessionId: string,
+  recommendations: Array<{
+    recommendationText: string;
+    recommendationType?: string;
+    priority?: number;
+  }>,
+) {
+  for (const [index, recommendation] of recommendations.entries()) {
+    await addDoc(collection(db, "ai_recommendations"), {
+      sessionId,
+      recommendationText: recommendation.recommendationText,
+      recommendationType: recommendation.recommendationType ?? "improvement",
+      priority: recommendation.priority ?? index + 1,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+  }
+}
+
+export async function createUserFeedback(input: {
+  userId: string;
+  sessionId: string;
+  rating: number;
+  comments?: string;
+  selfAssessment?: Record<string, unknown>;
+}) {
+  const ref = await addDoc(collection(db, "user_feedbacks"), {
+    user_id: input.userId,
+    session_id: input.sessionId,
+    rating: input.rating,
+    comments: input.comments ?? "",
+    selfAssessment: input.selfAssessment ?? null,
+    submitted_at: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  });
+
+  return ref.id;
 }

@@ -6,7 +6,7 @@ import { useParams } from 'next/navigation';
 import { REPORT_ITEMS, SAMPLE_ROWS } from '@/lib/report-templates';
 import { ArrowLeft, Download, FileSpreadsheet } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
-import { getAnalysisBySession, getConversationBySession, getRecommendationsBySession, getSessionById, listAllSessions, listSessionsByUser } from '@/lib/data-service';
+import { getAnalysisBySession, getConversationBySession, getRecommendationsBySession, getSessionById, listAllSessions, listQuestionsByCategory, listSessionsByUser } from '@/lib/data-service';
 import { jsPDF } from 'jspdf';
 
 const formatDate = (value: unknown) => {
@@ -153,6 +153,8 @@ export default function ReportDetailPage() {
                         if (activeSessionId) {
                             const session = await getSessionById(activeSessionId);
                             const transcript = Array.isArray((session as any)?.transcript) ? (session as any).transcript : [];
+                            const categoryId = String((session as any)?.categoryId || '');
+                            const questionBank = categoryId ? await listQuestionsByCategory(categoryId) : [];
 
                             const pairs: Array<{ question: string; answer: string }> = [];
                             let currentQuestion = '';
@@ -174,7 +176,9 @@ export default function ReportDetailPage() {
                                     No: index + 1,
                                     Pertanyaan: item.question,
                                     'Jawaban Kandidat': item.answer,
-                                    'Patokan Jawaban Ideal': 'Jawaban spesifik, terstruktur (STAR), relevan posisi, dan menyertakan contoh nyata.',
+                                    'Patokan Jawaban Ideal': (questionBank as any[])[index]?.idealKeywords
+                                        ? `Kata kunci ideal: ${(questionBank as any[])[index].idealKeywords}`
+                                        : 'Jawaban spesifik, terstruktur (STAR), relevan posisi, dan menyertakan contoh nyata.',
                                 }));
                             } else {
                                 const logs = await getConversationBySession(activeSessionId);
@@ -182,7 +186,9 @@ export default function ReportDetailPage() {
                                     No: index + 1,
                                     Pertanyaan: String(log.questionText || '-'),
                                     'Jawaban Kandidat': String(log.userAnswer || '-'),
-                                    'Patokan Jawaban Ideal': 'Jawaban spesifik, terstruktur (STAR), relevan posisi, dan menyertakan contoh nyata.',
+                                    'Patokan Jawaban Ideal': (questionBank as any[])[index]?.idealKeywords
+                                        ? `Kata kunci ideal: ${(questionBank as any[])[index].idealKeywords}`
+                                        : 'Jawaban spesifik, terstruktur (STAR), relevan posisi, dan menyertakan contoh nyata.',
                                 }));
                             }
                         }

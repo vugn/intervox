@@ -49,6 +49,31 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const isCaptureMockAuth =
+      typeof window !== 'undefined' &&
+      new URLSearchParams(window.location.search).get('mockAuth') === '1';
+
+    if (isCaptureMockAuth) {
+      const mockUser = {
+        uid: 'capture-admin',
+        email: 'capture-admin@intervox.local',
+        displayName: 'Capture Admin',
+      } as User;
+
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setUser(mockUser);
+      setUserData({
+        uid: mockUser.uid,
+        email: mockUser.email,
+        displayName: mockUser.displayName,
+        role: 'admin',
+        department: 'Teknik Informatika',
+        faculty: 'FTI',
+      });
+      setLoading(false);
+      return () => { };
+    }
+
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       if (currentUser) {

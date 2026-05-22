@@ -7,7 +7,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "clean": "next clean"
+    "clean": "next clean",
+    "capture:wireframes:install": "playwright install chromium",
+    "capture:wireframes": "node scripts/capture-wireframes.mjs",
+    "capture:wireframes:auto": "NEXT_PUBLIC_WIREFRAME_MODE=true NEXT_PUBLIC_CAPTURE_MODE=true start-server-and-test dev http://localhost:3000 capture:wireframes",
+    "export:reports:pdf": "node scripts/export-report-pdfs.mjs",
+    "export:reports:pdf:auto": "NEXT_PUBLIC_CAPTURE_MODE=true start-server-and-test dev http://localhost:3000 export:reports:pdf"
   },
   "dependencies": {
     "@google/genai": "^1.17.0",
@@ -35,6 +40,8 @@
     "eslint": "9.39.1",
     "eslint-config-next": "16.0.8",
     "firebase-tools": "^15.0.0",
+    "playwright": "^1.58.2",
+    "start-server-and-test": "^2.1.5",
     "tailwindcss": "4.1.11",
     "tw-animate-css": "^1.4.0",
     "typescript": "5.9.3"

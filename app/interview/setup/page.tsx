@@ -6,7 +6,7 @@ import { UploadCloud, User, Briefcase, Settings, Play, X, FileText, Loader2 } fr
 import * as motion from 'motion/react-client';
 import { useAuth } from '@/hooks/use-auth';
 import { storage } from '@/lib/firebase';
-import { createSession } from '@/lib/data-service';
+import { createSession, listCategories } from '@/lib/data-service';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 export default function InterviewSetup() {
@@ -17,6 +17,7 @@ export default function InterviewSetup() {
   const [existingCvUrl, setExistingCvUrl] = useState('');
   const [audioInputs, setAudioInputs] = useState<MediaDeviceInfo[]>([]);
   const [audioOutputs, setAudioOutputs] = useState<MediaDeviceInfo[]>([]);
+  const [categories, setCategories] = useState<Array<{ id: string; categoryName: string; moduleType?: string; difficultyLevel?: string }>>([]);
   const [cvUploadError, setCvUploadError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -24,7 +25,7 @@ export default function InterviewSetup() {
     name: '',
     email: '',
     interviewType: 'Kerja',
-    moduleCategory: 'General Interview',
+    moduleCategory: '',
     role: '',
     company: '',
     yearsExperience: '',
@@ -41,6 +42,7 @@ export default function InterviewSetup() {
 
   useEffect(() => {
     if (!user) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setFormData((prev) => ({
       ...prev,
       name: userData?.displayName || user.displayName || prev.name,
@@ -50,6 +52,32 @@ export default function InterviewSetup() {
     }));
     setExistingCvUrl(userData?.cvPath || userData?.cvUrl || '');
   }, [user, userData]);
+
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const rows = await listCategories();
+        const activeRows = rows.filter((row) => row.isActive !== false);
+        setCategories(activeRows as Array<{ id: string; categoryName: string; moduleType?: string; difficultyLevel?: string }>);
+
+        if (activeRows.length > 0) {
+          setFormData((prev) => {
+            if (prev.moduleCategory) return prev;
+            return {
+              ...prev,
+              moduleCategory: activeRows[0].id,
+              interviewType: activeRows[0].moduleType || prev.interviewType,
+              difficulty: activeRows[0].difficultyLevel || prev.difficulty,
+            };
+          });
+        }
+      } catch {
+        setCategories([]);
+      }
+    };
+
+    loadCategories();
+  }, []);
 
   useEffect(() => {
     const loadDevices = async () => {
@@ -157,7 +185,8 @@ export default function InterviewSetup() {
       personality: formData.personality,
       difficulty: formData.difficulty,
       interviewType: formData.interviewType,
-      moduleCategory: formData.moduleCategory,
+      moduleCategory: categories.find((item) => item.id === formData.moduleCategory)?.categoryName || formData.moduleCategory,
+      moduleCategoryId: formData.moduleCategory,
       inputDeviceId: formData.inputDeviceId,
       outputDeviceId: formData.outputDeviceId,
       name: formData.name,
@@ -304,13 +333,27 @@ export default function InterviewSetup() {
                     required
                     className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-colors bg-white text-sm"
                     value={formData.moduleCategory}
-                    onChange={(e) => setFormData({ ...formData, moduleCategory: e.target.value })}
+                    onChange={(e) => {
+                      const selectedCategory = categories.find((item) => item.id === e.target.value);
+                      setFormData({
+                        ...formData,
+                        moduleCategory: e.target.value,
+                        interviewType: selectedCategory?.moduleType || formData.interviewType,
+                        difficulty: selectedCategory?.difficultyLevel || formData.difficulty,
+                      });
+                    }}
                   >
-                    <option value="General Interview">General Interview</option>
-                    <option value="Technical Interview">Technical Interview</option>
-                    <option value="Behavioral Interview">Behavioral Interview</option>
-                    <option value="Case Interview">Case Interview</option>
-                    <option value="Leadership Interview">Leadership Interview</option>
+                    {categories.length === 0 ? (
+                      <>
+                        <option value="General Interview">General Interview</option>
+                        <option value="Technical Interview">Technical Interview</option>
+                        <option value="Behavioral Interview">Behavioral Interview</option>
+                        <option value="Case Interview">Case Interview</option>
+                        <option value="Leadership Interview">Leadership Interview</option>
+                      </>
+                    ) : categories.map((category) => (
+                      <option key={category.id} value={category.id}>{category.categoryName}</option>
+                    ))}
                   </select>
                 </div>
               </div>

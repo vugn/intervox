@@ -2,7 +2,14 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
-import { seedSessions } from '@/lib/data-service';
+import {
+    createCategory,
+    createLecturer,
+    createQuestion,
+    createScoringCriteria,
+    seedSessions,
+    upsertUser,
+} from '@/lib/data-service';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Database, ArrowLeft, Loader2, CheckCircle, AlertTriangle } from 'lucide-react';
@@ -184,6 +191,55 @@ const SAMPLE_SESSIONS = [
     },
 ];
 
+const SAMPLE_CATEGORIES = [
+    { categoryName: 'General Interview', description: 'Pertanyaan umum seputar profil kandidat', moduleType: 'Kerja', difficultyLevel: 'easy' },
+    { categoryName: 'Technical Interview', description: 'Pertanyaan teknis sesuai kompetensi inti', moduleType: 'Kerja', difficultyLevel: 'medium' },
+    { categoryName: 'Behavioral Interview', description: 'Pertanyaan perilaku dan pengalaman kerja', moduleType: 'Kerja', difficultyLevel: 'medium' },
+    { categoryName: 'Case Interview', description: 'Studi kasus analitis dan pemecahan masalah', moduleType: 'Kerja', difficultyLevel: 'hard' },
+    { categoryName: 'Leadership Interview', description: 'Pertanyaan kepemimpinan dan kolaborasi tim', moduleType: 'Kerja', difficultyLevel: 'hard' },
+];
+
+const SAMPLE_QUESTIONS: Record<string, Array<{ questionText: string; idealKeywords: string; difficultyLevel: string }>> = {
+    'General Interview': [
+        { questionText: 'Ceritakan tentang diri Anda secara singkat.', idealKeywords: 'ringkas, relevan, pengalaman, motivasi', difficultyLevel: 'easy' },
+        { questionText: 'Mengapa Anda tertarik pada posisi ini?', idealKeywords: 'motivasi, value perusahaan, kontribusi', difficultyLevel: 'easy' },
+        { questionText: 'Apa kelebihan utama Anda?', idealKeywords: 'kekuatan, bukti konkret, dampak', difficultyLevel: 'easy' },
+    ],
+    'Technical Interview': [
+        { questionText: 'Bagaimana Anda memastikan kualitas kode dalam tim?', idealKeywords: 'code review, testing, linting, CI/CD', difficultyLevel: 'medium' },
+        { questionText: 'Jelaskan pengalaman Anda dengan debugging issue produksi.', idealKeywords: 'observability, root cause, rollback, prevention', difficultyLevel: 'medium' },
+        { questionText: 'Bagaimana Anda mengoptimalkan performa aplikasi?', idealKeywords: 'profiling, bottleneck, caching, optimization', difficultyLevel: 'hard' },
+    ],
+    'Behavioral Interview': [
+        { questionText: 'Ceritakan situasi ketika Anda menghadapi konflik dalam tim.', idealKeywords: 'STAR, komunikasi, solusi, hasil', difficultyLevel: 'medium' },
+        { questionText: 'Bagaimana Anda menangani tekanan deadline?', idealKeywords: 'prioritas, time management, koordinasi', difficultyLevel: 'medium' },
+        { questionText: 'Berikan contoh ketika Anda belajar teknologi baru dengan cepat.', idealKeywords: 'inisiatif, pembelajaran, implementasi', difficultyLevel: 'medium' },
+    ],
+    'Case Interview': [
+        { questionText: 'Bagaimana pendekatan Anda untuk meningkatkan retensi pengguna aplikasi?', idealKeywords: 'analisis data, hipotesis, eksperimen, metrik', difficultyLevel: 'hard' },
+        { questionText: 'Jika sistem down saat traffic tinggi, langkah apa yang Anda ambil?', idealKeywords: 'incident response, mitigasi, komunikasi, RCA', difficultyLevel: 'hard' },
+        { questionText: 'Bagaimana Anda memprioritaskan backlog fitur saat resource terbatas?', idealKeywords: 'impact-effort, stakeholder, roadmap', difficultyLevel: 'hard' },
+    ],
+    'Leadership Interview': [
+        { questionText: 'Bagaimana Anda memimpin tim lintas fungsi?', idealKeywords: 'alignment, komunikasi, ownership, outcome', difficultyLevel: 'hard' },
+        { questionText: 'Ceritakan pengalaman mentoring anggota tim junior.', idealKeywords: 'coaching, feedback, growth, hasil', difficultyLevel: 'medium' },
+        { questionText: 'Bagaimana Anda mengambil keputusan sulit dalam tim?', idealKeywords: 'data-driven, risiko, transparansi, evaluasi', difficultyLevel: 'hard' },
+    ],
+};
+
+const SAMPLE_CRITERIA = [
+    { criteriaName: 'Communication', weightScore: 25, idealKeywords: 'jelas, terstruktur, percaya diri', description: 'Menilai kejelasan dan efektivitas komunikasi kandidat' },
+    { criteriaName: 'Technical Skills', weightScore: 30, idealKeywords: 'akurasi, best practice, relevan', description: 'Menilai penguasaan teknis sesuai posisi yang dilamar' },
+    { criteriaName: 'Problem Solving', weightScore: 25, idealKeywords: 'analitis, sistematis, solusi', description: 'Menilai kemampuan analisis masalah dan solusi' },
+    { criteriaName: 'Culture Fit', weightScore: 20, idealKeywords: 'kolaborasi, nilai, adaptasi', description: 'Menilai kecocokan nilai kerja dan perilaku profesional' },
+];
+
+const SAMPLE_LECTURERS = [
+    { fullName: 'Dr. Rina Pratama, S.Kom., M.Kom.', email: 'rina.pratama@kampus.ac.id', department: 'Teknik Informatika', faculty: 'FTI', phone: '081200000001' },
+    { fullName: 'Andri Setiawan, S.T., M.T.', email: 'andri.setiawan@kampus.ac.id', department: 'Sistem Informasi', faculty: 'FTI', phone: '081200000002' },
+    { fullName: 'Nadia Khairunnisa, S.Kom., M.Cs.', email: 'nadia.khairunnisa@kampus.ac.id', department: 'Teknik Informatika', faculty: 'FTI', phone: '081200000003' },
+];
+
 export default function SeedPage() {
     const { user, loading } = useAuth();
     const router = useRouter();
@@ -198,8 +254,57 @@ export default function SeedPage() {
         setSeededCount(0);
 
         try {
+            await upsertUser(user.uid, {
+                email: user.email,
+                displayName: user.displayName || 'Admin Seeder',
+                role: 'admin',
+                updatedAt: new Date().toISOString(),
+            });
+
+            const seededCategoryMap = new Map<string, string>();
+
+            for (const category of SAMPLE_CATEGORIES) {
+                const created = await createCategory({
+                    ...category,
+                    isActive: true,
+                } as any);
+                seededCategoryMap.set(category.categoryName, (created as any).id);
+            }
+
+            for (const [categoryName, questions] of Object.entries(SAMPLE_QUESTIONS)) {
+                const categoryId = seededCategoryMap.get(categoryName);
+                if (!categoryId) continue;
+
+                for (const question of questions) {
+                    await createQuestion({
+                        categoryId,
+                        questionText: question.questionText,
+                        idealKeywords: question.idealKeywords,
+                        difficultyLevel: question.difficultyLevel,
+                        createdBy: user.uid,
+                    });
+                }
+            }
+
+            for (const criteria of SAMPLE_CRITERIA) {
+                await createScoringCriteria({
+                    ...criteria,
+                    isActive: true,
+                } as any);
+            }
+
+            for (const lecturer of SAMPLE_LECTURERS) {
+                await createLecturer(lecturer as any);
+            }
+
             await seedSessions(user.uid, SAMPLE_SESSIONS as unknown as Record<string, unknown>[]);
-            setSeededCount(SAMPLE_SESSIONS.length);
+            setSeededCount(
+                SAMPLE_SESSIONS.length +
+                SAMPLE_CATEGORIES.length +
+                Object.values(SAMPLE_QUESTIONS).reduce((sum, items) => sum + items.length, 0) +
+                SAMPLE_CRITERIA.length +
+                SAMPLE_LECTURERS.length,
+            );
             setStatus('done');
         } catch (err: any) {
             console.error('Seeding error:', err);
