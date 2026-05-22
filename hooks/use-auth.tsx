@@ -173,7 +173,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUserData({
           ...newUserData,
           fullName: displayName,
+          accountStatus: 'pending', // Optimistically set status
         });
+
+        // Trigger Resend email notifications
+        const { notifyNewRegistration } = await import('@/app/actions/email');
+        await notifyNewRegistration(displayName, email).catch(console.error);
       } catch (e) {
         // syncUserData will retry when onAuthStateChange fires
         console.warn('User record creation deferred to syncUserData:', e);

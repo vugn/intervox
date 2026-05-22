@@ -82,6 +82,7 @@ export async function getUserByUid(uid: string) {
     displayName: user.full_name,
     fullName: user.full_name,
     role: user.role,
+    accountStatus: user.account_status,
     phone: user.phone,
     department: user.department,
     faculty: user.faculty,
@@ -186,6 +187,69 @@ export async function getInternalUserId(authUid: string): Promise<string | null>
     .eq("auth_id", authUid)
     .maybeSingle();
   return data?.id ?? null;
+}
+
+export async function listAllUsers() {
+  const { data, error } = await supabase
+    .from("users")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error || !data) {
+    console.error("Error fetching all users:", error);
+    return [];
+  }
+
+  return data.map((u) => ({
+    id: u.id,
+    authId: u.auth_id,
+    email: u.email,
+    fullName: u.full_name,
+    role: u.role,
+    accountStatus: u.account_status,
+    createdAt: u.created_at,
+  }));
+}
+
+export async function updateUserAccountStatus(userId: string, status: 'pending' | 'approved' | 'rejected') {
+  const { error } = await supabase
+    .from("users")
+    .update({ account_status: status, updated_at: new Date().toISOString() })
+    .eq("id", userId);
+
+  if (error) {
+    console.error("Error updating account status:", error);
+    throw error;
+  }
+}
+
+// ─── System Settings ─────────────────────────────────────────────────────────
+
+export async function getSystemSettings(key: string) {
+  const { data, error } = await supabase
+    .from("system_settings")
+    .select("setting_value")
+    .eq("setting_key", key)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return data.setting_value;
+}
+
+export async function updateSystemSettings(key: string, value: any, userId?: string) {
+  const { error } = await supabase
+    .from("system_settings")
+    .upsert({ 
+      setting_key: key, 
+      setting_value: value, 
+      updated_at: new Date().toISOString(),
+      updated_by: userId || null 
+    }, { onConflict: 'setting_key' });
+
+  if (error) {
+    console.error("Error updating system settings:", error);
+    throw error;
+  }
 }
 
 // ─── Sessions ────────────────────────────────────────────────────────────────

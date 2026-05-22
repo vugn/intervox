@@ -10,7 +10,9 @@ CREATE TABLE users (
   email VARCHAR(100) UNIQUE NOT NULL,
   full_name VARCHAR(100) NOT NULL,
   role VARCHAR(20) NOT NULL DEFAULT 'student'
-    CHECK (role IN ('student', 'lecturer', 'head_of_program')),
+    CHECK (role IN ('student', 'administrator', 'head_of_program')),
+  account_status VARCHAR(20) NOT NULL DEFAULT 'pending'
+    CHECK (account_status IN ('pending', 'approved', 'rejected')),
   phone VARCHAR(20),
   department VARCHAR(100),
   faculty VARCHAR(100),
@@ -154,6 +156,51 @@ CREATE TABLE user_feedbacks (
   submitted_at TIMESTAMPTZ DEFAULT NOW(),
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- ============================================
+-- SYSTEM SETTINGS & NOTIFICATIONS
+-- ============================================
+
+-- TABLE 13: system_settings
+CREATE TABLE system_settings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  setting_key VARCHAR(100) UNIQUE NOT NULL,
+  setting_value JSONB NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_by UUID REFERENCES users(id)
+);
+
+-- TABLE 14: notifications
+CREATE TABLE notifications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  title VARCHAR(200) NOT NULL,
+  message TEXT NOT NULL,
+  type VARCHAR(50) DEFAULT 'info',
+  is_read BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Enable RLS for new tables
+ALTER TABLE system_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+
+-- Policies for system_settings
+CREATE POLICY "Public read access for system_settings" ON system_settings FOR SELECT USING (true);
+CREATE POLICY "Administrator full access to system_settings" ON system_settings FOR ALL
+  USING (EXISTS (SELECT 1 FROM users WHERE users.id = auth.uid() AND users.role = 'administrator'));
+
+-- Policies for notifications
+CREATE POLICY "Users can read own notifications" ON notifications FOR SELECT
+  USING (user_id IN (SELECT id FROM users WHERE auth_id = auth.uid()));
+CREATE POLICY "Users can update own notifications" ON notifications FOR UPDATE
+  USING (user_id IN (SELECT id FROM users WHERE auth_id = auth.uid()));
+CREATE POLICY "System can insert notifications" ON notifications FOR INSERT WITH CHECK (true);
+
+-- Insert Default Head of Program Signature Data
+INSERT INTO system_settings (setting_key, setting_value)
+VALUES ('head_of_program_signature', '{"name": "Prof. Dr. Hj. Silvia Ratna, S.Kom., M.Kom.", "nip": "19750913 200501 2 001", "signature_url": "", "qr_code_data": ""}'::jsonb)
+ON CONFLICT (setting_key) DO NOTHING;
 
 -- ============================================
 -- INDEXES

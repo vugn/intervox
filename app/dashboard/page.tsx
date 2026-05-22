@@ -6,6 +6,7 @@ import { listSessionsByUser } from '@/lib/data-service';
 import Link from 'next/link';
 import { FileText, Play, Clock, CheckCircle, BarChart2, ArrowRight, Database } from 'lucide-react';
 import * as motion from 'motion/react-client';
+import AdminDashboard from './admin-dashboard';
 
 export default function Dashboard() {
   const { user, userData, loading: authLoading } = useAuth();
@@ -52,6 +53,10 @@ export default function Dashboard() {
         </div>
       </div>
     );
+  }
+
+  if (userData?.role === 'administrator' || userData?.role === 'head_of_program') {
+    return <AdminDashboard />;
   }
 
   return (

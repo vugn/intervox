@@ -7,8 +7,10 @@ import { useAuth } from '@/hooks/use-auth';
 
 export default function ReportsPage() {
     const { userData } = useAuth();
-    const isAdmin = ['lecturer', 'head_of_program'].includes(userData?.role);
-    const visibleReports = REPORT_ITEMS.filter((report) => !report.adminOnly || isAdmin);
+    const isAdmin = ['administrator', 'head_of_program'].includes(userData?.role);
+    const visibleReports = isAdmin 
+        ? REPORT_ITEMS.filter((report) => report.adminOnly || report.type === 'score-evaluation')
+        : REPORT_ITEMS.filter((report) => !report.adminOnly);
 
     return (
         <div className="container mx-auto px-4 py-8 md:py-12 max-w-6xl">

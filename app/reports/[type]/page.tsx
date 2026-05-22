@@ -6,8 +6,9 @@ import { useParams } from 'next/navigation';
 import { REPORT_ITEMS, SAMPLE_ROWS } from '@/lib/report-templates';
 import { ArrowLeft, Download, FileSpreadsheet } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
-import { getAnalysisBySession, getConversationBySession, getRecommendationsBySession, getSessionById, listAllSessions, listQuestionsByCategory, listSessionsByUser } from '@/lib/data-service';
+import { getAnalysisBySession, getConversationBySession, getRecommendationsBySession, getSessionById, listAllSessions, listQuestionsByCategory, listSessionsByUser, getSystemSettings } from '@/lib/data-service';
 import { jsPDF } from 'jspdf';
+import ReportTemplate from '@/components/report-template';
 
 const formatDate = (value: unknown) => {
     if (!value) return '-';
@@ -45,6 +46,7 @@ export default function ReportDetailPage() {
     const [toDate, setToDate] = useState('');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [headOfProgram, setHeadOfProgram] = useState(null);
 
     const report = REPORT_ITEMS.find((item) => item.type === type);
     const isAdmin = ['lecturer', 'head_of_program'].includes(userData?.role);
@@ -302,6 +304,12 @@ export default function ReportDetailPage() {
 
                 const allowSampleFallback = !isSessionBasedReport;
                 setRows(dynamicRows.length ? dynamicRows : (allowSampleFallback ? (SAMPLE_ROWS[type] || []) : []));
+
+                if (report?.requireSignature) {
+                    const settings = await getSystemSettings('head_of_program_signature');
+                    setHeadOfProgram(settings);
+                }
+
             } catch (err: any) {
                 setError(err?.message || 'Gagal memuat data laporan dari backend.');
                 setRows(SAMPLE_ROWS[type] || []);
@@ -457,8 +465,14 @@ export default function ReportDetailPage() {
     }
 
     return (
-        <div className="container mx-auto px-4 py-8 md:py-12 max-w-6xl">
-            <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <ReportTemplate
+            title={report.title}
+            subtitle={report.description}
+            dateRange={fromDate || toDate ? { start: fromDate || '-', end: toDate || '-' } : undefined}
+            headOfProgram={headOfProgram}
+            requireSignature={report.requireSignature}
+        >
+            <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4 print:hidden">
                 <div>
                     <Link href="/reports" className="inline-flex items-center text-sm text-slate-500 hover:text-slate-900 mb-2"><ArrowLeft className="w-4 h-4 mr-1" />Kembali</Link>
                     <h1 className="text-2xl md:text-3xl font-display font-bold text-slate-900">{report.title}</h1>
@@ -574,6 +588,6 @@ export default function ReportDetailPage() {
                     </div>
                 )}
             </div>
-        </div>
+        </ReportTemplate>
     );
 }

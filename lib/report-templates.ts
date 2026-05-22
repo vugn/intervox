@@ -5,6 +5,7 @@ export type ReportItem = {
   type: string;
   exportTypes: Array<"PDF" | "Excel">;
   adminOnly?: boolean;
+  requireSignature?: boolean;
 };
 
 export const REPORT_ITEMS: ReportItem[] = [
@@ -17,10 +18,11 @@ export const REPORT_ITEMS: ReportItem[] = [
   },
   {
     id: "r2",
-    title: "Laporan Hasil Evaluasi Skor",
-    description: "Rekap nilai akhir per sesi latihan.",
+    title: "Laporan Hasil Evaluasi Skor (Performa Keseluruhan)",
+    description: "Rekap nilai akhir per sesi latihan secara resmi.",
     type: "score-evaluation",
     exportTypes: ["PDF", "Excel"],
+    requireSignature: true,
   },
   {
     id: "r3",
@@ -52,19 +54,21 @@ export const REPORT_ITEMS: ReportItem[] = [
   },
   {
     id: "r7",
-    title: "Laporan Data Peserta Aktif (Admin)",
-    description: "Rekap peserta yang aktif berlatih.",
+    title: "Laporan Data Peserta Aktif & Demografi (Admin)",
+    description: "Rekap resmi peserta yang aktif berlatih di platform.",
     type: "active-participants",
     exportTypes: ["PDF", "Excel"],
     adminOnly: true,
+    requireSignature: true,
   },
   {
     id: "r8",
-    title: "Laporan Statistik Modul (Admin)",
-    description: "Data popularitas modul latihan.",
+    title: "Laporan Analitik Modul (Admin)",
+    description: "Data penggunaan dan kompetensi modul latihan.",
     type: "module-statistics",
     exportTypes: ["PDF", "Excel"],
     adminOnly: true,
+    requireSignature: true,
   },
   {
     id: "r9",

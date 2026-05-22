@@ -18,9 +18,14 @@ export default function Header() {
     { href: '/profile', label: 'Profil' },
   ];
 
-  const isAdmin = ['lecturer', 'head_of_program'].includes(userData?.role);
+  const isAdmin = ['administrator', 'head_of_program'].includes(userData?.role);
   const navLinks = isAdmin
-    ? [...baseLinks.slice(0, 3), { href: '/admin', label: 'Admin' }, baseLinks[3]]
+    ? [
+        { href: '/dashboard', label: 'Dashboard' },
+        { href: '/reports', label: 'Laporan' },
+        { href: '/admin/users', label: 'Verifikasi' },
+        { href: '/profile', label: 'Profil' },
+      ]
     : baseLinks;
 
   return (
