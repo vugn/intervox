@@ -177,8 +177,15 @@ export default function InterviewSetup() {
           createdAt: new Date().toISOString(),
         });
       }
-    } catch (error) {
+
+      if (!sessionId) {
+        throw new Error('Gagal membuat sesi interview. Pastikan akun kamu sudah terverifikasi.');
+      }
+    } catch (error: any) {
       console.error('Error creating session:', error);
+      alert(error?.message || 'Gagal membuat sesi interview. Coba lagi.');
+      setIsSubmitting(false);
+      return;
     }
 
     const params = new URLSearchParams({

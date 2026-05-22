@@ -5,33 +5,32 @@ import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { getSessionById } from '@/lib/data-service';
 import Link from 'next/link';
-import { ArrowLeft, Download, FileText, CheckCircle, AlertTriangle, Lightbulb, BarChart2 } from 'lucide-react';
+import { ArrowLeft, Download, FileText, CheckCircle, AlertTriangle, Lightbulb, BarChart2, Loader2, RefreshCw } from 'lucide-react';
 import * as motion from 'motion/react-client';
 
 export default function ReportPage() {
   const { id } = useParams();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisError, setAnalysisError] = useState('');
 
   useEffect(() => {
     const fetchSession = async () => {
-      if (!user || !id) return;
+      if (authLoading) return;
+      if (!user || !id) {
+        setLoading(false);
+        return;
+      }
       try {
         const sessionData = await getSessionById(id as string);
 
         if (sessionData) {
-          const data: any = sessionData;
-          // RLS handles access control at the database level
-          if (data) {
-            setSession({ id: (sessionData as any).id || id, ...data });
-          } else {
-            console.error("Unauthorized access");
-            router.push('/dashboard');
-          }
+          setSession({ ...sessionData, id: (sessionData as any).id || id });
         } else {
-          console.error("No such document!");
+          console.error("Session not found");
           router.push('/dashboard');
         }
       } catch (error) {
@@ -42,9 +41,9 @@ export default function ReportPage() {
     };
 
     fetchSession();
-  }, [user, id, router]);
+  }, [user, id, router, authLoading]);
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="flex-1 flex items-center justify-center p-4">
         <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
@@ -66,25 +65,96 @@ export default function ReportPage() {
     );
   }
 
-  // Mock analysis data if not present (for demonstration before AI analysis is fully implemented)
-  const analysis = session.analysis || {
-    strengths: [
-      "Clear communication style",
-      "Good understanding of core concepts",
-      "Structured answers"
-    ],
-    weaknesses: [
-      "Could provide more specific examples",
-      "Hesitation on technical deep-dives"
-    ],
-    overallFeedback: "You demonstrated a solid foundation for this role. Your communication is clear, but you need to back up your claims with more concrete examples from your past experience.",
-    scores: {
-      communication: 85,
-      technical: 70,
-      problemSolving: 80,
-      cultureFit: 90
+  const analysis = session.analysis;
+
+  const handleRunAnalysis = async () => {
+    if (!session.transcript || session.transcript.length < 2) {
+      setAnalysisError('Transcript is too short to analyze. Please complete a longer interview.');
+      return;
+    }
+
+    setIsAnalyzing(true);
+    setAnalysisError('');
+
+    try {
+      const { analyzeInterview } = await import('@/lib/analyze-interview');
+      const result = await analyzeInterview({
+        sessionId: session.id,
+        transcript: session.transcript,
+        role: session.jobRole || session.roleTarget || 'General',
+        language: session.language || 'English',
+        difficulty: session.difficulty || 'medium',
+        interviewType: session.moduleType || 'Professional',
+        moduleCategory: session.categoryId || 'General',
+      });
+
+      if (result) {
+        // Reload session data to show the new analysis
+        const updatedSession = await getSessionById(session.id);
+        if (updatedSession) {
+          setSession({ ...updatedSession, id: session.id });
+        }
+      } else {
+        setAnalysisError('AI analysis failed. Please try again.');
+      }
+    } catch (error: any) {
+      console.error('Analysis error:', error);
+      setAnalysisError(error?.message || 'An error occurred during analysis.');
+    } finally {
+      setIsAnalyzing(false);
     }
   };
+
+  // Session needs analysis
+  if (!analysis || !analysis.scores || session.status === 'pending_analysis' || session.status === 'analyzing') {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-2xl">
+        <Link href="/dashboard" className="inline-flex items-center text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors mb-4">
+          <ArrowLeft className="w-4 h-4 mr-1" />
+          Back to Dashboard
+        </Link>
+        <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 text-center">
+          {isAnalyzing ? (
+            <>
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-indigo-50 flex items-center justify-center">
+                <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
+              </div>
+              <h2 className="text-xl font-bold text-slate-900 mb-2">Analyzing Your Interview...</h2>
+              <p className="text-slate-600 mb-2">AI is reviewing your transcript and generating scores.</p>
+              <p className="text-sm text-slate-400">This may take up to 60 seconds.</p>
+            </>
+          ) : (
+            <>
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-indigo-50 flex items-center justify-center">
+                <BarChart2 className="w-8 h-8 text-indigo-500" />
+              </div>
+              <h2 className="text-xl font-bold text-slate-900 mb-2">Analysis Ready to Run</h2>
+              <p className="text-slate-600 mb-6">
+                Your interview transcript has been saved. Click below to run the AI analysis and get your scores.
+              </p>
+              {analysisError && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
+                  {analysisError}
+                </div>
+              )}
+              <div className="flex justify-center gap-3">
+                <button
+                  onClick={handleRunAnalysis}
+                  className="bg-indigo-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-indigo-700 transition-colors inline-flex items-center gap-2"
+                >
+                  <BarChart2 className="w-4 h-4" />
+                  Run AI Analysis
+                </button>
+                <Link href="/dashboard" className="border border-slate-200 text-slate-700 px-6 py-3 rounded-xl font-medium hover:bg-slate-50 transition-colors">
+                  Later
+                </Link>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   const overallScore = session.score || Math.round((analysis.scores.communication + analysis.scores.technical + analysis.scores.problemSolving + analysis.scores.cultureFit) / 4);
 
@@ -120,6 +190,14 @@ export default function ReportPage() {
             >
               <Download className="w-4 h-4" />
               CSV
+            </button>
+            <button
+              onClick={handleRunAnalysis}
+              disabled={isAnalyzing}
+              className="bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-lg font-medium hover:bg-slate-50 transition-colors shadow-sm flex items-center gap-2 disabled:opacity-50"
+            >
+              {isAnalyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+              {isAnalyzing ? 'Analyzing...' : 'Re-analyze'}
             </button>
             <button
               onClick={() => window.print()}

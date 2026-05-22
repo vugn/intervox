@@ -6,14 +6,10 @@ import * as motion from 'motion/react-client';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useLiveAPI } from '@/hooks/use-live-api';
 import ReactMarkdown from 'react-markdown';
-import { listQuestionsByCategory, listScoringCriteria, saveAnalysisResult, saveConversationLogs, saveRecommendations, updateSession } from '@/lib/data-service';
+import { listQuestionsByCategory, listScoringCriteria, saveConversationLogs, updateSession } from '@/lib/data-service';
 import { useAuth } from '@/hooks/use-auth';
 
-import { GoogleGenAI, Type } from '@google/genai';
-
 function InterviewSessionContent() {
-  const analysisModel =
-    process.env.NEXT_PUBLIC_GEMINI_TEXT_MODEL || 'gemini-2.5-flash';
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -217,136 +213,35 @@ You must speak with a standard ${language} accent.
     setIsSaving(true);
     disconnect();
 
+    const feedbackParams = new URLSearchParams({
+      ...(sessionId ? { sessionId } : {}),
+      role,
+    });
+    const feedbackUrl = `/interview/feedback?${feedbackParams.toString()}`;
+
     if (sessionId && user) {
       try {
-        // 1. Save initial transcript and status
         const transcriptData = transcript.map(t => ({
           role: t.role,
           text: t.text,
           timestamp: Date.now(),
         }));
 
-        await updateSession(sessionId, {
-          status: 'analyzing',
-          completedAt: new Date().toISOString(),
-          transcript: transcriptData,
-        });
-
-        await saveConversationLogs(sessionId, transcriptData);
-
-        // 2. Generate Analysis
-        if (transcriptData.length > 2) {
-          const clientGeminiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-          if (!clientGeminiKey) {
-            throw new Error('NEXT_PUBLIC_GEMINI_API_KEY belum di-set.');
-          }
-          const ai = new GoogleGenAI({ apiKey: clientGeminiKey });
-          const transcriptText = transcriptData.map(t => `${t.role === 'user' ? 'Candidate' : 'Interviewer'}: ${t.text}`).join('\n');
-
-          const analysisPrompt = `Analyze the following interview transcript for a ${role} position.
-Language: ${language}
-Difficulty: ${difficulty}
-Interview type: ${interviewType}
-Category: ${moduleCategory}
-
-Scoring criteria reference:
-${scoringGuide || 'Use balanced criteria for communication, technical depth, problem solving, and culture fit.'}
-
-Transcript:
-${transcriptText}
-
-Provide a detailed analysis including:
-1. Key Strengths (list of 3-5 points)
-2. Areas for Improvement (list of 2-4 points)
-3. Overall Feedback (a short paragraph)
-4. Scores (0-100) for: Communication, Technical Skills, Problem Solving, and Culture Fit.
-
-Return ONLY a valid JSON object matching this schema:
-{
-  "strengths": ["...", "..."],
-  "weaknesses": ["...", "..."],
-  "overallFeedback": "...",
-  "scores": {
-    "communication": 85,
-    "technical": 70,
-    "problemSolving": 80,
-    "cultureFit": 90
-  }
-}`;
-
-          const response = await ai.models.generateContent({
-            model: analysisModel,
-            contents: analysisPrompt,
-            config: {
-              responseMimeType: 'application/json',
-              responseSchema: {
-                type: Type.OBJECT,
-                properties: {
-                  strengths: { type: Type.ARRAY, items: { type: Type.STRING } },
-                  weaknesses: { type: Type.ARRAY, items: { type: Type.STRING } },
-                  overallFeedback: { type: Type.STRING },
-                  scores: {
-                    type: Type.OBJECT,
-                    properties: {
-                      communication: { type: Type.NUMBER },
-                      technical: { type: Type.NUMBER },
-                      problemSolving: { type: Type.NUMBER },
-                      cultureFit: { type: Type.NUMBER }
-                    },
-                    required: ["communication", "technical", "problemSolving", "cultureFit"]
-                  }
-                },
-                required: ["strengths", "weaknesses", "overallFeedback", "scores"]
-              }
-            }
-          });
-
-          const analysisResult = JSON.parse(response.text || '{}');
-          const overallScore = Math.round(
-            (analysisResult.scores.communication +
-              analysisResult.scores.technical +
-              analysisResult.scores.problemSolving +
-              analysisResult.scores.cultureFit) / 4
-          );
-
-          // 3. Update with analysis
+        // Save transcript and mark as pending analysis
+        try {
           await updateSession(sessionId, {
-            status: 'completed',
-            analysis: analysisResult,
-            score: overallScore
+            status: 'pending_analysis',
+            completedAt: new Date().toISOString(),
+            transcript: transcriptData,
           });
+        } catch (e) {
+          console.error('Failed to save session transcript:', e);
+        }
 
-          await saveAnalysisResult(sessionId, analysisResult);
-
-          const recommendations = (Array.isArray(analysisResult.weaknesses) ? analysisResult.weaknesses : []).map((item: string, index: number) => ({
-            recommendationText: `Fokus latihan pada: ${item}`,
-            recommendationType: 'improvement',
-            priority: index + 1,
-          }));
-
-          if (recommendations.length > 0) {
-            await saveRecommendations(sessionId, recommendations);
-          }
-        } else {
-          const fallbackAnalysis = {
-            strengths: ["None"],
-            weaknesses: ["Interview was too short to evaluate"],
-            overallFeedback: "The interview was too short to provide a meaningful evaluation.",
-            scores: { communication: 0, technical: 0, problemSolving: 0, cultureFit: 0 }
-          };
-
-          await updateSession(sessionId, {
-            status: 'completed',
-            score: 0,
-            analysis: fallbackAnalysis
-          });
-
-          await saveAnalysisResult(sessionId, fallbackAnalysis);
-          await saveRecommendations(sessionId, [{
-            recommendationText: 'Lanjutkan sesi wawancara lebih lama agar analisis lebih akurat.',
-            recommendationType: 'session-quality',
-            priority: 1,
-          }]);
+        try {
+          await saveConversationLogs(sessionId, transcriptData);
+        } catch (e) {
+          console.error('Failed to save conversation logs:', e);
         }
 
       } catch (error) {
@@ -354,12 +249,9 @@ Return ONLY a valid JSON object matching this schema:
       }
     }
 
-    // Redirect to feedback page, then report
-    const feedbackParams = new URLSearchParams({
-      ...(sessionId ? { sessionId } : {}),
-      role,
-    });
-    router.push(`/interview/feedback?${feedbackParams.toString()}`);
+    // Redirect immediately — analysis will be triggered from the report page
+    setIsSaving(false);
+    router.push(feedbackUrl);
   };
 
   const cancelEndInterview = () => {

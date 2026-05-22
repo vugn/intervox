@@ -8,13 +8,17 @@ import { FileText, Play, Clock, CheckCircle, BarChart2, ArrowRight, Database } f
 import * as motion from 'motion/react-client';
 
 export default function Dashboard() {
-  const { user, userData } = useAuth();
+  const { user, userData, loading: authLoading } = useAuth();
   const [sessions, setSessions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchSessions = async () => {
-      if (!user) return;
+      if (authLoading) return;
+      if (!user) {
+        setLoading(false);
+        return;
+      }
       try {
         const sessionsData = await listSessionsByUser(user.id);
         setSessions(sessionsData as any[]);
@@ -26,7 +30,15 @@ export default function Dashboard() {
     };
 
     fetchSessions();
-  }, [user]);
+  }, [user, authLoading]);
+
+  if (authLoading || loading) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-4">
+        <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div><p className="mt-4 text-slate-500">{authLoading ? "Authenticating..." : "Loading data..."}</p>
+      </div>
+    );
+  }
 
   if (!user) {
     return (
@@ -82,7 +94,7 @@ export default function Dashboard() {
           <div>
             <p className="text-sm font-medium text-slate-500">Selesai</p>
             <p className="text-3xl font-bold text-slate-900">
-              {sessions.filter(s => s.status === 'completed' || s.status === 'analyzing').length}
+              {sessions.filter(s => s.status === 'completed' || s.status === 'analyzing' || s.status === 'pending_analysis').length}
             </p>
           </div>
         </div>
@@ -173,9 +185,10 @@ export default function Dashboard() {
                       <td className="px-6 py-4">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${session.status === 'completed' ? 'bg-emerald-100 text-emerald-700' :
                             session.status === 'analyzing' ? 'bg-amber-100 text-amber-700' :
+                              session.status === 'pending_analysis' ? 'bg-indigo-100 text-indigo-700' :
                               'bg-slate-100 text-slate-700'
                           }`}>
-                          {session.status === 'completed' ? 'Selesai' : session.status === 'analyzing' ? 'Analisis' : session.status}
+                          {session.status === 'completed' ? 'Completed' : session.status === 'analyzing' ? 'Analyzing' : session.status === 'pending_analysis' ? 'Needs Analysis' : session.status}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-right">
@@ -207,9 +220,10 @@ export default function Dashboard() {
                         <span className="text-xs text-slate-400">{new Date(session.createdAt).toLocaleDateString('id-ID')}</span>
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${session.status === 'completed' ? 'bg-emerald-100 text-emerald-700' :
                             session.status === 'analyzing' ? 'bg-amber-100 text-amber-700' :
+                              session.status === 'pending_analysis' ? 'bg-indigo-100 text-indigo-700' :
                               'bg-slate-100 text-slate-700'
                           }`}>
-                          {session.status === 'completed' ? 'Selesai' : session.status === 'analyzing' ? 'Analisis' : session.status}
+                          {session.status === 'completed' ? 'Completed' : session.status === 'analyzing' ? 'Analyzing' : session.status === 'pending_analysis' ? 'Needs Analysis' : session.status}
                         </span>
                       </div>
                     </div>

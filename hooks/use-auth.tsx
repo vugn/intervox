@@ -11,7 +11,7 @@ interface AuthContextType {
   loading: boolean;
   signInWithGoogle: () => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<void>;
-  signUpWithEmail: (email: string, password: string, displayName: string) => Promise<void>;
+  signUpWithEmail: (email: string, password: string, displayName: string) => Promise<{ confirmEmail: boolean }>;
   resetPassword: (email: string) => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -22,7 +22,7 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   signInWithGoogle: async () => { },
   signInWithEmail: async () => { },
-  signUpWithEmail: async () => { },
+  signUpWithEmail: async () => ({ confirmEmail: false }),
   resetPassword: async () => { },
   logout: async () => { },
 });
@@ -69,6 +69,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const syncUserData = async (supaUser: User) => {
     try {
+      // First verify the auth session is still valid
+      const { data: { user: verifiedUser }, error: authError } = await supabase.auth.getUser();
+      if (authError || !verifiedUser) {
+        console.warn('Stale session detected, signing out...');
+        await supabase.auth.signOut();
+        setUser(null);
+        setUserData(null);
+        return;
+      }
+
       const existingUser = await getUserByUid(supaUser.id);
 
       if (existingUser) {
@@ -87,7 +97,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           role: 'student',
           createdAt: new Date().toISOString(),
         };
-        await upsertUser(supaUser.id, newUserData);
+        try {
+          await upsertUser(supaUser.id, newUserData);
+        } catch (e) {
+          console.warn('upsertUser failed, will use fallback data:', e);
+        }
+        // Always set user data so the app doesn't get stuck
         setUserData({
           ...newUserData,
           fullName: newUserData.displayName,
@@ -95,6 +110,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     } catch (error) {
       console.error('Failed to sync user data:', error);
+      // Use fallback data instead of signing out
       setUserData({
         uid: supaUser.id,
         email: supaUser.email,
@@ -125,7 +141,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (error) throw error;
   };
 
-  const signUpWithEmail = async (email: string, password: string, displayName: string) => {
+  const signUpWithEmail = async (email: string, password: string, displayName: string): Promise<{ confirmEmail: boolean }> => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -137,22 +153,34 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     });
     if (error) throw error;
 
-    // Create user record immediately if signup doesn't require email confirmation
-    if (data.user) {
-      const newUserData = {
-        uid: data.user.id,
-        email: data.user.email,
-        displayName,
-        photoURL: null,
-        role: 'student',
-        createdAt: new Date().toISOString(),
-      };
-      await upsertUser(data.user.id, newUserData);
-      setUserData({
-        ...newUserData,
-        fullName: displayName,
-      });
+    // If email confirmation is required, session will be null
+    if (data.user && !data.session) {
+      return { confirmEmail: true };
     }
+
+    // Create user record immediately (user is already authenticated)
+    if (data.user && data.session) {
+      try {
+        const newUserData = {
+          uid: data.user.id,
+          email: data.user.email,
+          displayName,
+          photoURL: null,
+          role: 'student',
+          createdAt: new Date().toISOString(),
+        };
+        await upsertUser(data.user.id, newUserData);
+        setUserData({
+          ...newUserData,
+          fullName: displayName,
+        });
+      } catch (e) {
+        // syncUserData will retry when onAuthStateChange fires
+        console.warn('User record creation deferred to syncUserData:', e);
+      }
+    }
+
+    return { confirmEmail: false };
   };
 
   const resetPassword = async (email: string) => {

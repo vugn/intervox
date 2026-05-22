@@ -59,9 +59,23 @@ export default function AuthPage() {
       return;
     }
     setLoading(true);
+    setSuccess('');
     try {
-      await signUpWithEmail(signUpEmail, signUpPassword, signUpName);
+      const result = await signUpWithEmail(signUpEmail, signUpPassword, signUpName);
+      if (result.confirmEmail) {
+        setSuccess('🎉 Pendaftaran berhasil! Cek email kamu dan klik link konfirmasi untuk mengaktifkan akun. Setelah itu, kamu bisa login.');
+        setTab('signin');
+        setSignUpName('');
+        setSignUpEmail('');
+        setSignUpPassword('');
+        setSignUpConfirm('');
+      } else {
+        // No email confirmation needed — user is logged in immediately
+        // The useEffect will redirect to /dashboard
+        setSuccess('🎉 Pendaftaran berhasil! Mengalihkan ke dashboard...');
+      }
     } catch (err: any) {
+      console.error('Signup error:', err);
       setError(getSupabaseError(err));
     } finally {
       setLoading(false);

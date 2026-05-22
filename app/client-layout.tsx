@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AuthProvider } from '@/hooks/use-auth';
 
-export default function ClientLayout({ children }: { children: React.ReactNode }) {
+function WireframeModeToggle() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -18,5 +18,16 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     };
   }, [searchParams]);
 
-  return <AuthProvider>{children}</AuthProvider>;
+  return null;
+}
+
+export default function ClientLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <AuthProvider>
+      <Suspense fallback={null}>
+        <WireframeModeToggle />
+      </Suspense>
+      {children}
+    </AuthProvider>
+  );
 }

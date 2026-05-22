@@ -133,8 +133,8 @@ export async function upsertUser(uid: string, data: Record<string, unknown>) {
       .single();
 
     if (error || !newUser) {
-      console.error("Error creating user:", error);
-      return;
+      console.error("Error creating user:", error?.message, error?.details, error?.code, error);
+      throw new Error(error?.message || "Failed to create user record");
     }
     userId = newUser.id;
   }
@@ -192,12 +192,26 @@ export async function getInternalUserId(authUid: string): Promise<string | null>
 
 export async function createSession(data: Record<string, unknown>) {
   const authUid = data.userId as string;
-  const internalId = await getInternalUserId(authUid);
-  if (!internalId) throw new Error("User not found");
+  let internalId = await getInternalUserId(authUid);
+  
+  // Auto-create user record if not found (safety net for first login after email confirm)
+  if (!internalId) {
+    const { data: authData } = await supabase.auth.getUser();
+    if (authData?.user) {
+      await upsertUser(authData.user.id, {
+        email: authData.user.email,
+        displayName: authData.user.user_metadata?.full_name || authData.user.email?.split('@')[0] || '',
+        role: 'student',
+      });
+      internalId = await getInternalUserId(authUid);
+    }
+  }
+
+  if (!internalId) throw new Error("User not found. Please log out and log in again.");
 
   const payload = {
     user_id: internalId,
-    category_id: (data.categoryId ?? data.moduleCategory ?? null) as string | null,
+    category_id: (data.categoryId || data.moduleCategory || null) as string | null,
     module_type: (data.moduleType ?? data.interviewType ?? null) as string | null,
     role_target: (data.jobRole ?? null) as string | null,
     company: (data.company ?? null) as string | null,
@@ -248,10 +262,15 @@ export async function updateSession(
   if (data.completedAt !== undefined) payload.end_time = data.completedAt;
   if (data.expressionData !== undefined) payload.expression_data = data.expressionData;
 
-  await supabase
+  const { error } = await supabase
     .from("interview_sessions")
     .update(payload)
     .eq("id", sessionId);
+
+  if (error) {
+    console.error("updateSession error:", error.message, error.code, error.details);
+    throw new Error(`Failed to update session: ${error.message}`);
+  }
 }
 
 export async function getSessionById(sessionId: string) {
@@ -633,7 +652,10 @@ export async function saveConversationLogs(
     .filter((item) => item.question_text || item.user_answer);
 
   if (logs.length > 0) {
-    await supabase.from("conversation_logs").insert(logs);
+    const { error } = await supabase.from("conversation_logs").insert(logs);
+    if (error) {
+      console.error("saveConversationLogs error:", error.message, error.code);
+    }
   }
 }
 
@@ -706,7 +728,7 @@ export async function saveAnalysisResult(
     };
   },
 ) {
-  await supabase.from("analysis_results").insert({
+  const { error } = await supabase.from("analysis_results").insert({
     session_id: sessionId,
     communication_score: analysis.scores?.communication ?? 0,
     technical_score: analysis.scores?.technical ?? 0,
@@ -722,6 +744,10 @@ export async function saveAnalysisResult(
     analyzed_at: new Date().toISOString(),
     created_at: new Date().toISOString(),
   });
+
+  if (error) {
+    console.error("saveAnalysisResult error:", error.message, error.code);
+  }
 }
 
 // ─── Recommendations ─────────────────────────────────────────────────────────
@@ -774,7 +800,10 @@ export async function saveRecommendations(
   }));
 
   if (rows.length > 0) {
-    await supabase.from("ai_recommendations").insert(rows);
+    const { error } = await supabase.from("ai_recommendations").insert(rows);
+    if (error) {
+      console.error("saveRecommendations error:", error.message, error.code);
+    }
   }
 }
 
