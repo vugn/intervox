@@ -49,7 +49,7 @@ export default function ReportDetailPage() {
     const [headOfProgram, setHeadOfProgram] = useState(null);
 
     const report = REPORT_ITEMS.find((item) => item.type === type);
-    const isAdmin = ['lecturer', 'head_of_program'].includes(userData?.role);
+    const isAdmin = userData?.role === 'lecturer' || userData?.role === 'administrator';
 
     const isSessionBasedReport = ['transcript', 'strength-weakness', 'answer-comparison', 'development-recommendation', 'certificate'].includes(type);
 

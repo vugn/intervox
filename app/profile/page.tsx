@@ -16,6 +16,7 @@ export default function ProfilePage() {
     const [formData, setFormData] = useState({
         displayName: '',
         phone: '',
+        npm: '',
         university: '',
         major: '',
         graduationYear: '',
@@ -40,6 +41,7 @@ export default function ProfilePage() {
             setFormData({
                 displayName: userData.displayName || userData.fullName || '',
                 phone: userData.phone || '',
+                npm: userData.npm || '',
                 university: userData.university || '',
                 major: userData.major || '',
                 graduationYear: userData.graduationYear || '',
@@ -79,6 +81,7 @@ export default function ProfilePage() {
             await upsertUser(user.id, {
                 displayName: formData.displayName,
                 phone: formData.phone,
+                npm: formData.npm,
                 university: formData.university,
                 major: formData.major,
                 graduationYear: formData.graduationYear,
@@ -193,6 +196,10 @@ export default function ProfilePage() {
                                     <label className="block text-sm font-medium text-slate-700">Nomor Telepon</label>
                                     <input type="tel" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} className={inputClass} placeholder="08xx-xxxx-xxxx" />
                                 </div>
+                                <div className="space-y-1.5 sm:col-span-2">
+                                    <label className="block text-sm font-medium text-slate-700">NPM (Nomor Pokok Mahasiswa) <span className="text-red-500">*</span></label>
+                                    <input type="text" required value={formData.npm} onChange={e => setFormData({ ...formData, npm: e.target.value })} className={inputClass} placeholder="Contoh: 2010010001" />
+                                </div>
                                 <div className="space-y-1.5">
                                     <label className="block text-sm font-medium text-slate-700">LinkedIn URL</label>
                                     <input type="url" value={formData.linkedinUrl} onChange={e => setFormData({ ...formData, linkedinUrl: e.target.value })} className={inputClass} placeholder="https://linkedin.com/in/..." />
@@ -208,10 +215,10 @@ export default function ProfilePage() {
                             <div className="grid sm:grid-cols-2 gap-4">
                                 <div className="space-y-1.5 sm:col-span-2">
                                     <label className="block text-sm font-medium text-slate-700">Universitas / Institusi</label>
-                                    <input type="text" value={formData.university} onChange={e => setFormData({ ...formData, university: e.target.value })} className={inputClass} placeholder="misal: Universitas Indonesia" />
+                                    <input type="text" value={formData.university} onChange={e => setFormData({ ...formData, university: e.target.value })} className={inputClass} placeholder="Universitas Islam Kalimantan (UNISKA)" />
                                 </div>
                                 <div className="space-y-1.5">
-                                    <label className="block text-sm font-medium text-slate-700">Jurusan / Program Studi</label>
+                                    <label className="block text-sm font-medium text-slate-700">Program Studi / Jurusan</label>
                                     <input type="text" value={formData.major} onChange={e => setFormData({ ...formData, major: e.target.value })} className={inputClass} placeholder="misal: Teknik Informatika" />
                                 </div>
                                 <div className="space-y-1.5">

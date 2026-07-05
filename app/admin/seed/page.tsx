@@ -257,7 +257,7 @@ export default function SeedPage() {
             await upsertUser(user.id, {
                 email: user.email,
                 displayName: user.user_metadata?.full_name || 'Admin Seeder',
-                role: 'head_of_program',
+                role: 'administrator',
                 updatedAt: new Date().toISOString(),
             });
 

@@ -50,7 +50,7 @@ export default function AdminSettingsPage() {
     }
   };
 
-  if (userData?.role !== 'administrator' && userData?.role !== 'head_of_program') {
+  if (userData?.role !== 'administrator') {
     return (
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="bg-red-50 text-red-600 p-6 rounded-2xl flex flex-col items-center max-w-sm text-center">
@@ -79,7 +79,7 @@ export default function AdminSettingsPage() {
       ) : (
         <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
           <div className="p-6 sm:p-8 border-b border-slate-200">
-            <h2 className="text-lg font-bold text-slate-900 mb-4">Pengesahan Laporan (Kepala Program)</h2>
+            <h2 className="text-lg font-bold text-slate-900 mb-4">Pengesahan Laporan (Dosen Pembimbing / Penguji)</h2>
             <p className="text-sm text-slate-500 mb-6">
               Data ini akan ditampilkan di bagian bawah kanan (tanda tangan) pada laporan-laporan resmi yang dicetak dari sistem.
             </p>

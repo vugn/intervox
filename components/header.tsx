@@ -18,15 +18,21 @@ export default function Header() {
     { href: '/profile', label: 'Profil' },
   ];
 
-  const isAdmin = ['administrator', 'head_of_program'].includes(userData?.role);
-  const navLinks = isAdmin
-    ? [
+  let navLinks = baseLinks;
+  if (userData?.role === 'administrator') {
+    navLinks = [
         { href: '/dashboard', label: 'Dashboard' },
         { href: '/reports', label: 'Laporan' },
         { href: '/admin/users', label: 'Verifikasi' },
         { href: '/profile', label: 'Profil' },
-      ]
-    : baseLinks;
+    ];
+  } else if (userData?.role === 'lecturer') {
+    navLinks = [
+        { href: '/lecturer', label: 'Dashboard Dosen' },
+        { href: '/reports', label: 'Laporan' },
+        { href: '/profile', label: 'Profil' },
+    ];
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white/90 backdrop-blur-md print:hidden">

@@ -88,6 +88,7 @@ export async function getUserByUid(uid: string) {
     faculty: user.faculty,
     photoURL: user.photo_url,
     // Profile fields
+    npm: profile?.npm,
     university: profile?.university,
     major: profile?.major,
     graduationYear: profile?.graduation_year,
@@ -142,13 +143,14 @@ export async function upsertUser(uid: string, data: Record<string, unknown>) {
 
   // 2. Upsert student profile if there's profile data
   const hasProfileData = [
-    "university", "major", "graduationYear", "targetIndustry",
+    "npm", "university", "major", "graduationYear", "targetIndustry",
     "bio", "cvPath", "cvUrl", "gpa", "skills", "linkedinUrl",
   ].some((key) => data[key] !== undefined);
 
   if (hasProfileData) {
     const profilePayload = {
       user_id: userId,
+      npm: data.npm as string | undefined,
       university: data.university as string | undefined,
       major: data.major as string | undefined,
       graduation_year: data.graduationYear as string | undefined,

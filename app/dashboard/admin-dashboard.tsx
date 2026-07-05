@@ -41,7 +41,7 @@ export default function AdminDashboard() {
     <div className="container mx-auto px-4 py-8 max-w-7xl">
       <div className="mb-8">
         <h1 className="text-2xl md:text-3xl font-display font-bold text-slate-900">
-          Dashboard {userData?.role === 'head_of_program' ? 'Kepala Program' : 'Administrator'}
+          Dashboard Administrator
         </h1>
         <p className="text-slate-500 mt-1">Ringkasan aktivitas platform dan manajemen pengguna.</p>
       </div>

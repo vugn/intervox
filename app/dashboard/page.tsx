@@ -55,7 +55,7 @@ export default function Dashboard() {
     );
   }
 
-  if (userData?.role === 'administrator' || userData?.role === 'head_of_program') {
+  if (userData?.role === 'administrator') {
     return <AdminDashboard />;
   }
 

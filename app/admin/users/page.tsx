@@ -61,7 +61,7 @@ export default function AdminUsersPage() {
     }
   };
 
-  if (userData?.role !== 'administrator' && userData?.role !== 'head_of_program') {
+  if (userData?.role !== 'administrator') {
     return (
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="bg-red-50 text-red-600 p-6 rounded-2xl flex flex-col items-center max-w-sm text-center">
