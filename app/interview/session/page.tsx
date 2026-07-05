@@ -8,6 +8,7 @@ import { useLiveAPI } from '@/hooks/use-live-api';
 import ReactMarkdown from 'react-markdown';
 import { listQuestionsByCategory, listScoringCriteria, saveConversationLogs, updateSession } from '@/lib/data-service';
 import { useAuth } from '@/hooks/use-auth';
+import { useFaceExpression } from '@/hooks/use-face-expression';
 
 function InterviewSessionContent() {
 
@@ -28,6 +29,9 @@ function InterviewSessionContent() {
   const shouldAutoScrollRef = useRef(true);
   const hasStartedGreeting = useRef(false);
   const kickoffRetryRef = useRef<number | null>(null);
+  const cameraVideoRef = useRef<HTMLVideoElement | null>(null);
+
+  const { isModelLoaded, isCameraActive, currentExpression, startDetection, stopDetection, getExpressionSummary } = useFaceExpression();
 
   const role = searchParams.get('role') || 'Software Engineer';
   const language = searchParams.get('language') || 'English';
@@ -202,6 +206,16 @@ You must speak with a standard ${language} accent.
 
   const handleStartRecording = async () => {
     await connect();
+    
+    // Start camera for expression analysis
+    try {
+      const stream = await startDetection();
+      if (stream && cameraVideoRef.current) {
+        cameraVideoRef.current.srcObject = stream;
+      }
+    } catch (e) {
+      console.error("Camera access denied or failed", e);
+    }
   };
 
   const handleEndInterview = () => {
@@ -227,12 +241,14 @@ You must speak with a standard ${language} accent.
           timestamp: Date.now(),
         }));
 
-        // Save transcript and mark as pending analysis
+        // Save transcript, expression data, and mark as pending analysis
         try {
+          const expressionSummary = getExpressionSummary();
           await updateSession(sessionId, {
             status: 'pending_analysis',
             completedAt: new Date().toISOString(),
             transcript: transcriptData,
+            expressionData: expressionSummary,
           });
         } catch (e) {
           console.error('Failed to save session transcript:', e);
@@ -373,6 +389,28 @@ You must speak with a standard ${language} accent.
               ></div>
             ))}
           </div>
+
+          {/* Webcam Preview & Expression Indicator */}
+          {isConnected && (
+            <div className="absolute bottom-4 left-4 bg-slate-900 border border-slate-700 rounded-xl overflow-hidden shadow-xl w-32 md:w-40 flex flex-col">
+              <div className="relative aspect-video bg-black">
+                <video
+                  ref={cameraVideoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="w-full h-full object-cover -scale-x-100"
+                ></video>
+                {!isCameraActive && (
+                  <div className="absolute inset-0 flex items-center justify-center text-xs text-slate-500">No Camera</div>
+                )}
+              </div>
+              <div className="px-3 py-2 bg-slate-800 text-xs flex items-center justify-between border-t border-slate-700">
+                <span className="font-medium text-slate-300">Ekspresi:</span>
+                <span className="capitalize text-indigo-400 font-semibold">{currentExpression?.expression || 'Netral'}</span>
+              </div>
+            </div>
+          )}
 
         </div>
 

@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { getSessionById } from '@/lib/data-service';
 import Link from 'next/link';
-import { ArrowLeft, Download, FileText, CheckCircle, AlertTriangle, Lightbulb, BarChart2, Loader2, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Download, FileText, CheckCircle, AlertTriangle, RefreshCw, Loader2, BarChart2, Activity } from 'lucide-react';
 import * as motion from 'motion/react-client';
 
 export default function ReportPage() {
@@ -86,6 +86,7 @@ export default function ReportPage() {
         difficulty: session.difficulty || 'medium',
         interviewType: session.moduleType || 'Professional',
         moduleCategory: session.categoryId || 'General',
+        expressionData: session.expressionData,
       });
 
       if (result) {
@@ -336,6 +337,30 @@ export default function ReportPage() {
               </ul>
             </div>
           </div>
+
+          {/* Facial Expression Analysis */}
+          {analysis.expressionAnalysis && (
+            <div className="bg-indigo-50 p-6 rounded-2xl border border-indigo-100 shadow-sm">
+              <h3 className="text-indigo-900 font-bold mb-4 flex items-center gap-2">
+                <Activity className="w-5 h-5" />
+                Facial Expression & Body Language
+              </h3>
+              <div className="grid md:grid-cols-2 gap-4 mb-4">
+                <div className="bg-white/60 p-4 rounded-xl">
+                  <p className="text-xs text-indigo-600 font-bold uppercase tracking-wider mb-1">Confidence Level</p>
+                  <p className="text-lg font-semibold text-slate-900 capitalize">{analysis.expressionAnalysis.confidenceLevel}</p>
+                </div>
+                <div className="bg-white/60 p-4 rounded-xl">
+                  <p className="text-xs text-indigo-600 font-bold uppercase tracking-wider mb-1">Dominant Expression</p>
+                  <p className="text-lg font-semibold text-slate-900 capitalize">{analysis.expressionAnalysis.dominantExpression}</p>
+                </div>
+              </div>
+              <div className="bg-white/80 p-4 rounded-xl text-sm text-slate-700 leading-relaxed">
+                <strong className="text-indigo-900 block mb-1">AI Feedback:</strong>
+                {analysis.expressionAnalysis.expressionFeedback}
+              </div>
+            </div>
+          )}
 
           {/* Transcript */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">

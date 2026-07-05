@@ -133,6 +133,7 @@ export default function ReportDetailPage() {
                             Modul: String(session.moduleType || '-'),
                             Status: String(session.status || '-'),
                             Skor: getSessionScore(session),
+                            'Skor Ekspresi': session.analysis?.scores?.expression || '-',
                             Tanggal: formatDate(session.createdAt),
                         }));
                         break;

@@ -12,6 +12,12 @@ export interface AnalysisResult {
     technical: number;
     problemSolving: number;
     cultureFit: number;
+    expression?: number;
+  };
+  expressionAnalysis?: {
+    confidenceLevel: string;
+    expressionFeedback: string;
+    dominantExpression: string;
   };
 }
 
@@ -24,6 +30,7 @@ export interface AnalyzeSessionParams {
   interviewType: string;
   moduleCategory: string;
   scoringGuide?: string;
+  expressionData?: any;
 }
 
 /**
@@ -41,6 +48,7 @@ export async function analyzeInterview(params: AnalyzeSessionParams): Promise<An
     interviewType,
     moduleCategory,
     scoringGuide,
+    expressionData,
   } = params;
 
   const analysisModel = process.env.NEXT_PUBLIC_GEMINI_TEXT_MODEL || 'gemini-2.5-flash';
@@ -73,11 +81,21 @@ ${scoringGuide || 'Use balanced criteria for communication, technical depth, pro
 Transcript:
 ${transcriptText}
 
+${expressionData && expressionData.totalFramesAnalyzed > 0 ? `
+Facial Expression Data from Webcam (analyzed every 500ms):
+- Dominant Expression: ${expressionData.dominantExpression}
+- Confidence Score: ${expressionData.confidenceScore}/100
+- Nervousness Indicator: ${expressionData.nervousnessIndicator}/100
+- Expression Distribution: ${JSON.stringify(expressionData.expressionDistribution)}
+
+Please incorporate the facial expression data to provide feedback on the candidate's body language and non-verbal communication.
+` : `Note: No facial expression data was provided for this session.`}
+
 Provide a detailed analysis including:
 1. Key Strengths (list of 3-5 points)
 2. Areas for Improvement (list of 2-4 points)
 3. Overall Feedback (a short paragraph)
-4. Scores (0-100) for: Communication, Technical Skills, Problem Solving, and Culture Fit.
+4. Scores (0-100) for: Communication, Technical Skills, Problem Solving, Culture Fit, and Expression.
 
 Return ONLY a valid JSON object matching this schema:
 {
@@ -88,7 +106,13 @@ Return ONLY a valid JSON object matching this schema:
     "communication": 85,
     "technical": 70,
     "problemSolving": 80,
-    "cultureFit": 90
+    "cultureFit": 90,
+    "expression": 75
+  },
+  "expressionAnalysis": {
+    "confidenceLevel": "tinggi/sedang/rendah",
+    "expressionFeedback": "...",
+    "dominantExpression": "neutral"
   }
 }`;
 
@@ -111,11 +135,21 @@ Return ONLY a valid JSON object matching this schema:
               technical: { type: Type.NUMBER },
               problemSolving: { type: Type.NUMBER },
               cultureFit: { type: Type.NUMBER },
+              expression: { type: Type.NUMBER },
             },
-            required: ['communication', 'technical', 'problemSolving', 'cultureFit'],
+            required: ['communication', 'technical', 'problemSolving', 'cultureFit', 'expression'],
+          },
+          expressionAnalysis: {
+            type: Type.OBJECT,
+            properties: {
+              confidenceLevel: { type: Type.STRING },
+              expressionFeedback: { type: Type.STRING },
+              dominantExpression: { type: Type.STRING },
+            },
+            required: ['confidenceLevel', 'expressionFeedback', 'dominantExpression'],
           },
         },
-        required: ['strengths', 'weaknesses', 'overallFeedback', 'scores'],
+        required: ['strengths', 'weaknesses', 'overallFeedback', 'scores', 'expressionAnalysis'],
       },
     },
   });
@@ -131,7 +165,8 @@ Return ONLY a valid JSON object matching this schema:
       (analysisResult.scores.communication +
         analysisResult.scores.technical +
         analysisResult.scores.problemSolving +
-        analysisResult.scores.cultureFit) / 4,
+        analysisResult.scores.cultureFit +
+        (analysisResult.scores.expression || 0)) / 5,
     );
 
     // Save to database
