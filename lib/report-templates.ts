@@ -85,6 +85,22 @@ export const REPORT_ITEMS: ReportItem[] = [
     type: "certificate",
     exportTypes: ["PDF"],
   },
+  {
+    id: "r11",
+    title: "Laporan Statistik Penggunaan Sistem",
+    description: "Jumlah sesi per periode, waktu latihan rata-rata, fitur yang paling sering digunakan.",
+    type: "system-stats",
+    exportTypes: ["PDF", "Excel"],
+    adminOnly: true,
+  },
+  {
+    id: "r12",
+    title: "Laporan Feedback Pengguna",
+    description: "Umpan balik dan penilaian sistem dari mahasiswa.",
+    type: "user-feedback",
+    exportTypes: ["PDF", "Excel"],
+    adminOnly: true,
+  },
 ];
 
 export const SAMPLE_ROWS: Record<

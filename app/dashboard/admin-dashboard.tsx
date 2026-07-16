@@ -10,7 +10,8 @@ export default function AdminDashboard() {
     totalUsers: 0,
     pendingUsers: 0,
     totalSessions: 0,
-    completedSessions: 0
+    completedSessions: 0,
+    pendingVerifications: 0
   });
   const [loading, setLoading] = useState(true);
 
@@ -26,7 +27,8 @@ export default function AdminDashboard() {
           totalUsers: (users as any[]).length,
           pendingUsers: (users as any[]).filter(u => u.accountStatus === 'pending').length,
           totalSessions: (sessions as any[]).length,
-          completedSessions: (sessions as any[]).filter(s => ['completed', 'analyzing', 'pending_analysis'].includes(s.status)).length
+          completedSessions: (sessions as any[]).filter(s => ['completed', 'analyzing', 'pending_analysis'].includes(s.status)).length,
+          pendingVerifications: (sessions as any[]).filter(s => s.status === 'pending-verification').length
         });
       } catch (error) {
         console.error("Failed to load admin stats:", error);
@@ -53,7 +55,7 @@ export default function AdminDashboard() {
       ) : (
         <>
           {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
               <div className="w-14 h-14 rounded-xl flex items-center justify-center bg-blue-100 text-blue-600">
                 <Users className="w-7 h-7" />
@@ -91,6 +93,16 @@ export default function AdminDashboard() {
               <div>
                 <p className="text-sm font-medium text-slate-500">Sesi Selesai</p>
                 <p className="text-3xl font-bold text-slate-900">{stats.completedSessions}</p>
+              </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+              <div className="w-14 h-14 rounded-xl flex items-center justify-center bg-rose-100 text-rose-600">
+                <ShieldCheck className="w-7 h-7" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-slate-500">Menunggu Validasi</p>
+                <p className="text-3xl font-bold text-slate-900">{stats.pendingVerifications}</p>
               </div>
             </div>
           </div>

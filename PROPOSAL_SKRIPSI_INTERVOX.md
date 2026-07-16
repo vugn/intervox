@@ -241,9 +241,10 @@ Tahapan model prototype:
 | 5   | F-05 | Admin mengelola kategori dan bank pertanyaan           |
 | 6   | F-06 | Admin mengelola kriteria penilaian                     |
 | 7   | F-07 | Sistem menyimpan sesi dan log percakapan               |
-| 8   | F-08 | Sistem menghasilkan analisis, rekomendasi, dan laporan |
-| 9   | F-09 | Pengguna mengirim umpan balik aplikasi                 |
-| 10  | F-10 | Admin mengelola data dosen/mentor                      |
+| 8   | F-08 | Sistem menghasilkan analisis berbasis STAR, rekomendasi, dan laporan |
+| 9   | F-09 | Pakar/Dosen melakukan validasi manual dan persetujuan nilai akhir (Expert Verification) |
+| 10  | F-10 | Pengguna mengirim umpan balik aplikasi |
+| 11  | F-11 | Admin mengelola data dosen/mentor dan melihat statistik penggunaan |
 
 ### 3.6 Perancangan Sistem
 
@@ -266,10 +267,10 @@ Alur ringkas:
 
 1. User registrasi/login.
 2. User memilih modul/kategori latihan.
-3. Sistem menjalankan sesi wawancara AI real-time.
-4. Sistem menyimpan log percakapan dan skor.
-5. Sistem menghasilkan analisis dan rekomendasi.
-6. User mengakses 10 jenis output laporan termasuk sertifikat.
+3. Sistem menjalankan sesi wawancara AI secara dinamis dengan deteksi ekspresi wajah real-time.
+4. Sistem memproses jawaban pengguna menggunakan analisis berbasis Metode STAR di akhir sesi.
+5. Laporan berstatus "Menunggu Validasi" hingga Pakar/Dosen memberikan persetujuan (Expert Verification).
+6. User mengakses laporan akhir yang telah tervalidasi beserta rekomendasi.
 
 **[Gambar 3.2 Flowmap Sistem Usulan (Intervox)]**
 
@@ -384,14 +385,17 @@ Keterangan: autentikasi kata sandi dikelola Firebase Authentication, sehingga `p
 | 6   | language            | VARCHAR    | 30    | Bahasa sesi                     |
 | 7   | personality         | VARCHAR    | 30    | Gaya interviewer AI             |
 | 8   | difficulty          | VARCHAR    | 20    | Tingkat kesulitan               |
-| 9   | status              | VARCHAR    | 20    | in-progress/analyzing/completed |
+| 9   | status              | VARCHAR    | 30    | in-progress/analyzing/pending-verification/completed |
 | 10  | score/totalScore    | DECIMAL    | 5,2   | Nilai akhir                     |
-| 11  | startTime           | DATETIME   | -     | Mulai sesi                      |
-| 12  | endTime             | DATETIME   | -     | Selesai sesi                    |
-| 13  | transcript          | ARRAY/JSON | -     | Log percakapan ter-embed        |
-| 14  | analysis            | JSON       | -     | Hasil analisis AI ter-embed     |
-| 15  | selfAssessment      | JSON       | -     | Umpan balik pengguna ter-embed  |
-| 16  | createdAt/updatedAt | DATETIME   | -     | Timestamp sistem                |
+| 11  | isVerifiedByExpert  | BOOLEAN    | -     | Status validasi dosen/pakar     |
+| 12  | expertFeedback      | TEXT       | -     | Catatan manual dari pakar       |
+| 13  | starAnalysis        | JSON       | -     | Hasil analisis metode STAR      |
+| 14  | startTime           | DATETIME   | -     | Mulai sesi                      |
+| 15  | endTime             | DATETIME   | -     | Selesai sesi                    |
+| 16  | transcript          | ARRAY/JSON | -     | Log percakapan ter-embed        |
+| 17  | analysis            | JSON       | -     | Hasil analisis AI ter-embed     |
+| 18  | selfAssessment      | JSON       | -     | Umpan balik pengguna ter-embed  |
+| 19  | createdAt/updatedAt | DATETIME   | -     | Timestamp sistem                |
 
 ### 3.7.7 Tabel `conversation_logs` (Tabel 3.10)
 
@@ -459,16 +463,14 @@ Keterangan implementasi aktual: umpan balik pengguna saat ini belum dipisah ke k
 
 | No  | Nama Input Form           | Fungsi                                       | Status Implementasi                      |
 | --- | ------------------------- | -------------------------------------------- | ---------------------------------------- |
-| 1   | Login                     | Autentikasi pengguna ke sistem               | Sudah                                    |
-| 2   | Registrasi                | Pendaftaran akun baru                        | Sudah                                    |
-| 3   | Manajemen Profil & Akun   | Pembaruan data pribadi dan akun              | Sudah                                    |
-| 4   | Pemilihan Modul Latihan   | Menentukan kategori/jenis sesi               | Sudah                                    |
-| 5   | Input Jawaban Real-time   | Menangkap respons wawancara pengguna         | Sudah                                    |
-| 6   | Manajemen Kategori        | Admin mengelola kategori interview           | Sudah                                    |
-| 7   | Manajemen Bank Pertanyaan | Admin mengelola pertanyaan dan jawaban ideal | Sudah                                    |
-| 8   | Kriteria Penilaian        | Admin menetapkan bobot dan rubrik penilaian  | Sudah                                    |
-| 9   | Umpan Balik Pengguna      | Pengguna memberi penilaian pengalaman        | Sudah (tersimpan di selfAssessment sesi) |
-| 10  | Manajemen Data Dosen      | Admin mengelola data dosen/mentor            | Sudah (role lecturer pada users)         |
+| 1   | Registrasi & Login        | Autentikasi pengguna ke sistem               | Sudah                                    |
+| 2   | Manajemen Profil & CV     | Input data diri dan unggah riwayat hidup     | Sudah                                    |
+| 3   | Manajemen Bank Soal       | Admin mengelola pertanyaan wawancara         | Sudah                                    |
+| 4   | Kriteria Penilaian STAR   | Admin menetapkan rubrik kriteria             | Sudah                                    |
+| 5   | Pengaturan Sesi Wawancara | Mahasiswa menentukan jenis modul sesi        | Sudah                                    |
+| 6   | Input Jawaban Real-time   | Menangkap ucapan/teks pengguna dan ekspresi  | Sudah                                    |
+| 7   | Validasi & Evaluasi Pakar | Dosen/HRD mereview dan mengubah skor AI      | **Baru** (Menunggu Pengembangan)         |
+| 8   | Umpan Balik Sistem        | Mahasiswa mengirim rating & feedback aplikasi| Sudah                                    |
 
 ### 3.8.2 Rancangan 10 Output/Laporan
 
@@ -476,16 +478,14 @@ Keterangan implementasi aktual: umpan balik pengguna saat ini belum dipisah ke k
 
 | No  | Nama Output/Laporan                   | Fungsi                                           | Status Implementasi |
 | --- | ------------------------------------- | ------------------------------------------------ | ------------------- |
-| 1   | Laporan Transkrip Wawancara           | Menampilkan percakapan AI dan pengguna           | Sudah               |
-| 2   | Laporan Hasil Evaluasi Skor           | Menampilkan skor total dan per kriteria          | Sudah               |
-| 3   | Laporan Analisis Kekuatan & Kelemahan | Menunjukkan keunggulan dan area perbaikan        | Sudah               |
-| 4   | Laporan Perbandingan Jawaban          | Membandingkan jawaban pengguna dan jawaban ideal | Sudah               |
-| 5   | Laporan Grafik Perkembangan           | Menampilkan tren performa dari waktu ke waktu    | Sudah               |
-| 6   | Laporan Rekomendasi Pengembangan Diri | Memberikan saran latihan personal                | Sudah               |
-| 7   | Laporan Data Peserta Aktif            | Rekap keaktifan peserta latihan                  | Sudah               |
-| 8   | Laporan Statistik Modul               | Statistik penggunaan modul/kategori              | Sudah               |
-| 9   | Laporan Analisis Tingkat Kesulitan    | Identifikasi materi/soal yang paling menantang   | Sudah               |
-| 10  | Sertifikat Latihan                    | Bukti penyelesaian latihan wawancara             | Sudah               |
+| 1   | Transkrip & Deteksi Ekspresi Wajah | Menampilkan percakapan AI dan analisis ekspresi | Sudah                                    |
+| 2   | Hasil Evaluasi AI (Metode STAR)    | Menampilkan penilaian berdasarkan metode STAR   | **Baru** (Update Prompt/UI)              |
+| 3   | Hasil Validasi Pakar (Final Score) | Laporan yang telah disetujui dosen/admin        | **Baru** (Menunggu Pengembangan)         |
+| 4   | Rekap Performa Keseluruhan         | Rekapitulasi progres seluruh sesi mahasiswa     | **Baru** (Sesuai Catatan Panelis)        |
+| 5   | Statistik Penggunaan Sistem        | Total sesi, waktu rata-rata, tren (Dosen)       | **Baru** (Sesuai Catatan Panelis)        |
+| 6   | Laporan Feedback Pengguna          | Rekap saran dan tingkat kepuasan user           | **Baru** (Sesuai Catatan Panelis)        |
+| 7   | Rekomendasi Pengembangan Diri      | Menyarankan area yang perlu dilatih ulang       | Sudah                                    |
+| 8   | Sertifikat / Bukti Latihan         | Sertifikat digital penyelesaian latihan         | Sudah                                    |
 
 ---
 

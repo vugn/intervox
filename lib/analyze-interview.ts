@@ -19,6 +19,12 @@ export interface AnalysisResult {
     expressionFeedback: string;
     dominantExpression: string;
   };
+  starAnalysis?: {
+    situation: string;
+    task: string;
+    action: string;
+    result: string;
+  };
 }
 
 export interface AnalyzeSessionParams {
@@ -96,6 +102,7 @@ Provide a detailed analysis including:
 2. Areas for Improvement (list of 2-4 points)
 3. Overall Feedback (a short paragraph)
 4. Scores (0-100) for: Communication, Technical Skills, Problem Solving, Culture Fit, and Expression.
+5. STAR Method Breakdown: Extract the candidate's core behavioral answer and map it into Situation, Task, Action, and Result. If they didn't follow it well, explain what was missing in the respective fields.
 
 Return ONLY a valid JSON object matching this schema:
 {
@@ -113,6 +120,12 @@ Return ONLY a valid JSON object matching this schema:
     "confidenceLevel": "tinggi/sedang/rendah",
     "expressionFeedback": "...",
     "dominantExpression": "neutral"
+  },
+  "starAnalysis": {
+    "situation": "...",
+    "task": "...",
+    "action": "...",
+    "result": "..."
   }
 }`;
 
@@ -148,8 +161,18 @@ Return ONLY a valid JSON object matching this schema:
             },
             required: ['confidenceLevel', 'expressionFeedback', 'dominantExpression'],
           },
+          starAnalysis: {
+            type: Type.OBJECT,
+            properties: {
+              situation: { type: Type.STRING },
+              task: { type: Type.STRING },
+              action: { type: Type.STRING },
+              result: { type: Type.STRING },
+            },
+            required: ['situation', 'task', 'action', 'result'],
+          },
         },
-        required: ['strengths', 'weaknesses', 'overallFeedback', 'scores', 'expressionAnalysis'],
+        required: ['strengths', 'weaknesses', 'overallFeedback', 'scores', 'expressionAnalysis', 'starAnalysis'],
       },
     },
   });
@@ -171,9 +194,10 @@ Return ONLY a valid JSON object matching this schema:
 
     // Save to database
     await updateSession(sessionId, {
-      status: 'completed',
+      status: 'pending-verification',
       analysis: analysisResult,
       score: overallScore,
+      starAnalysis: analysisResult.starAnalysis,
     });
 
     try {

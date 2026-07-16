@@ -327,6 +327,10 @@ export async function updateSession(
   if (data.selfAssessment !== undefined) payload.self_assessment = data.selfAssessment;
   if (data.completedAt !== undefined) payload.end_time = data.completedAt;
   if (data.expressionData !== undefined) payload.expression_data = data.expressionData;
+  if (data.isVerifiedByExpert !== undefined) payload.is_verified_by_expert = data.isVerifiedByExpert;
+  if (data.expertFeedback !== undefined) payload.expert_feedback = data.expertFeedback;
+  if (data.expertId !== undefined) payload.expert_id = data.expertId;
+  if (data.starAnalysis !== undefined) payload.star_analysis = data.starAnalysis;
 
   const { error } = await supabase
     .from("interview_sessions")
@@ -370,6 +374,10 @@ export async function getSessionById(sessionId: string) {
     analysis: session.analysis,
     selfAssessment: session.self_assessment,
     expressionData: session.expression_data,
+    starAnalysis: session.star_analysis,
+    isVerifiedByExpert: session.is_verified_by_expert,
+    expertFeedback: session.expert_feedback,
+    expertId: session.expert_id,
     candidateName: session.candidate_name,
     candidateEmail: session.candidate_email,
     jobDescription: session.job_description,
@@ -923,3 +931,69 @@ export async function seedSessions(
     });
   }
 }
+
+// ─── User Feedbacks ────────────────────────────────────────────────────────────
+
+export async function saveUserFeedback(input: {
+  userId: string;
+  sessionId?: string;
+  rating: number;
+  comments?: string;
+}) {
+  const internalId = await getInternalUserId(input.userId);
+  if (!internalId) throw new Error("User not found");
+
+  const { error } = await supabase.from("user_feedbacks").insert({
+    user_id: internalId,
+    session_id: input.sessionId,
+    rating: input.rating,
+    comments: input.comments,
+    submitted_at: new Date().toISOString(),
+    created_at: new Date().toISOString(),
+  });
+
+  if (error) {
+    console.error("saveUserFeedback error:", error.message);
+    throw error;
+  }
+}
+
+export async function listUserFeedbacks() {
+  const { data, error } = await supabase
+    .from("user_feedbacks")
+    .select(`
+      id,
+      rating,
+      comments,
+      submitted_at,
+      session_id,
+      users (
+        full_name,
+        email
+      )
+    `)
+    .order("submitted_at", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching user feedbacks:", error);
+    return [];
+  }
+  return data;
+}
+
+// ─── System Stats View ───────────────────────────────────────────────────────
+
+export async function getSystemUsageStats() {
+  const { data, error } = await supabase
+    .from("system_usage_stats")
+    .select("*")
+    .maybeSingle();
+
+  if (error) {
+    console.error("Error fetching system stats:", error);
+    return null;
+  }
+  return data;
+}
+
+

@@ -38,6 +38,7 @@ export default function LecturerDashboard() {
                 sessions: [],
                 totalSessions: 0,
                 averageScore: 0,
+                pendingVerifications: 0,
             });
         });
 
@@ -46,6 +47,9 @@ export default function LecturerDashboard() {
                 const studentData = studentMap.get(session.userId);
                 studentData.sessions.push(session);
                 studentData.totalSessions++;
+                if (session.status === 'pending-verification') {
+                    studentData.pendingVerifications++;
+                }
             }
         });
 
@@ -159,6 +163,7 @@ export default function LecturerDashboard() {
                 <th className="px-6 py-4 font-medium">Mahasiswa</th>
                 <th className="px-6 py-4 font-medium text-center">Total Sesi</th>
                 <th className="px-6 py-4 font-medium text-center">Rata-rata Skor</th>
+                <th className="px-6 py-4 font-medium text-center">Menunggu Validasi</th>
                 <th className="px-6 py-4 font-medium">Sesi Terakhir</th>
                 <th className="px-6 py-4 font-medium text-right">Laporan Utama</th>
               </tr>
@@ -193,6 +198,15 @@ export default function LecturerDashboard() {
                         <div className="inline-flex items-center justify-center w-10 h-10 rounded-full font-bold text-sm bg-indigo-50 text-indigo-700 border border-indigo-100">
                           {student.averageScore}
                         </div>
+                      ) : (
+                        <span className="text-slate-400 text-sm italic">-</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      {student.pendingVerifications > 0 ? (
+                        <span className="inline-flex items-center justify-center px-2.5 py-1 rounded-lg text-sm font-medium bg-rose-100 text-rose-700">
+                          {student.pendingVerifications}
+                        </span>
                       ) : (
                         <span className="text-slate-400 text-sm italic">-</span>
                       )}

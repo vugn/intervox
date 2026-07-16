@@ -3,7 +3,7 @@
 import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
-import { createUserFeedback, updateSession } from '@/lib/data-service';
+import { saveUserFeedback, updateSession } from '@/lib/data-service';
 import { Star, ThumbsUp, Loader2, ArrowRight, MessageSquare } from 'lucide-react';
 import * as motion from 'motion/react-client';
 
@@ -74,12 +74,11 @@ function FeedbackContent() {
                     selfAssessment: selfAssessmentPayload,
                 });
 
-                await createUserFeedback({
+                await saveUserFeedback({
                     userId: user.id,
                     sessionId,
                     rating: formData.platformRating,
                     comments: formData.platformFeedback || formData.whatToImprove || '',
-                    selfAssessment: selfAssessmentPayload,
                 });
             } catch (err) {
                 console.error('Error saving feedback:', err);

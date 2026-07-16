@@ -3,19 +3,23 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
-import { getSessionById } from '@/lib/data-service';
+import { getSessionById, updateSession } from '@/lib/data-service';
 import Link from 'next/link';
-import { ArrowLeft, Download, FileText, CheckCircle, AlertTriangle, RefreshCw, Loader2, BarChart2, Activity } from 'lucide-react';
+import { ArrowLeft, Download, FileText, CheckCircle, AlertTriangle, RefreshCw, Loader2, BarChart2, Activity, ShieldCheck } from 'lucide-react';
 import * as motion from 'motion/react-client';
 
 export default function ReportPage() {
   const { id } = useParams();
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
+  const { user, userData, loading: authLoading } = useAuth();
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisError, setAnalysisError] = useState('');
+  
+  // Verification State
+  const [expertFeedback, setExpertFeedback] = useState('');
+  const [verifying, setVerifying] = useState(false);
 
   useEffect(() => {
     const fetchSession = async () => {
@@ -29,6 +33,7 @@ export default function ReportPage() {
 
         if (sessionData) {
           setSession({ ...sessionData, id: (sessionData as any).id || id });
+          setExpertFeedback((sessionData as any).expertFeedback || '');
         } else {
           console.error("Session not found");
           router.push('/dashboard');
@@ -42,6 +47,26 @@ export default function ReportPage() {
 
     fetchSession();
   }, [user, id, router, authLoading]);
+
+  const handleVerify = async () => {
+    if (!session || !userData?.id) return;
+    setVerifying(true);
+    try {
+      await updateSession(session.id, {
+        status: 'completed',
+        isVerifiedByExpert: true,
+        expertFeedback: expertFeedback,
+        expertId: userData.id
+      });
+      setSession({ ...session, status: 'completed', isVerifiedByExpert: true, expertFeedback });
+      alert("Laporan berhasil divalidasi dan disetujui!");
+    } catch (e) {
+      console.error(e);
+      alert('Gagal memverifikasi laporan');
+    } finally {
+      setVerifying(false);
+    }
+  };
 
   if (authLoading || loading) {
     return (
@@ -66,6 +91,7 @@ export default function ReportPage() {
   }
 
   const analysis = session.analysis;
+  const isLecturerOrAdmin = userData?.role === 'lecturer' || userData?.role === 'administrator' || userData?.role === 'head_of_program';
 
   const handleRunAnalysis = async () => {
     if (!session.transcript || session.transcript.length < 2) {
@@ -105,6 +131,26 @@ export default function ReportPage() {
       setIsAnalyzing(false);
     }
   };
+
+  // Block student if pending verification
+  if (session.status === 'pending-verification' && !isLecturerOrAdmin) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-2xl">
+        <Link href="/dashboard" className="inline-flex items-center text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors mb-4">
+          <ArrowLeft className="w-4 h-4 mr-1" />
+          Back to Dashboard
+        </Link>
+        <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-amber-50 flex items-center justify-center">
+             <AlertTriangle className="w-8 h-8 text-amber-500" />
+          </div>
+          <h2 className="text-xl font-bold text-slate-900 mb-2">Menunggu Validasi Pakar</h2>
+          <p className="text-slate-600 mb-6">Laporan evaluasi AI sudah selesai, namun sedang **menunggu proses validasi manual** dari Dosen Pembimbing atau HRD sebelum dapat Anda lihat.</p>
+          <p className="text-sm text-slate-400">Silakan cek kembali secara berkala.</p>
+        </div>
+      </div>
+    );
+  }
 
   // Session needs analysis
   if (!analysis || !analysis.scores || session.status === 'pending_analysis' || session.status === 'analyzing') {
@@ -168,9 +214,18 @@ export default function ReportPage() {
         </Link>
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-display font-bold text-slate-900">Interview Report</h1>
+            <div className="flex items-center gap-3 mb-1">
+              <h1 className="text-3xl font-display font-bold text-slate-900">Interview Report</h1>
+              {session.isVerifiedByExpert ? (
+                <span className="bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5" /> Validasi Pakar
+                </span>
+              ) : (
+                <span className="bg-amber-100 text-amber-800 text-xs font-bold px-3 py-1 rounded-full">Belum Divalidasi</span>
+              )}
+            </div>
             <p className="text-slate-500 mt-1">
-              {session.jobRole} • {new Date(session.createdAt).toLocaleDateString()}
+              {session.candidateName || session.jobRole} • {new Date(session.createdAt).toLocaleDateString()}
             </p>
           </div>
           <div className="flex gap-2 print:hidden">
@@ -210,6 +265,48 @@ export default function ReportPage() {
           </div>
         </div>
       </div>
+      
+      {/* LECTURER VERIFICATION PANEL */}
+      {isLecturerOrAdmin && !session.isVerifiedByExpert && (
+         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 mb-8 shadow-sm">
+           <h3 className="text-amber-900 font-bold flex items-center gap-2 mb-3">
+             <ShieldCheck className="w-5 h-5" />
+             Form Validasi Pakar (Menunggu Persetujuan Anda)
+           </h3>
+           <p className="text-sm text-amber-800 mb-4">
+             AI telah melakukan evaluasi pada sesi ini. Silakan review hasil evaluasi Metode STAR dan Skor di bawah ini. Anda dapat memberikan catatan tambahan sebelum menerbitkan laporan ini ke mahasiswa.
+           </p>
+           <div className="space-y-4">
+             <div>
+               <label className="block text-sm font-semibold text-amber-900 mb-1">Catatan Tambahan Pakar / Dosen (Opsional)</label>
+               <textarea 
+                 value={expertFeedback}
+                 onChange={e => setExpertFeedback(e.target.value)}
+                 className="w-full bg-white border border-amber-300 rounded-xl p-3 text-sm min-h-[100px] focus:outline-none focus:ring-2 focus:ring-amber-500"
+                 placeholder="Tuliskan masukan spesifik Anda untuk mahasiswa..."
+               ></textarea>
+             </div>
+             <button 
+               onClick={handleVerify}
+               disabled={verifying}
+               className="bg-amber-600 hover:bg-amber-700 text-white px-6 py-2.5 rounded-xl font-semibold flex items-center gap-2 transition-colors"
+             >
+               {verifying ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+               Setujui & Terbitkan Laporan
+             </button>
+           </div>
+         </div>
+      )}
+
+      {session.isVerifiedByExpert && session.expertFeedback && (
+        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 mb-8 shadow-sm print:break-inside-avoid">
+           <h3 className="text-emerald-900 font-bold flex items-center gap-2 mb-2">
+             <ShieldCheck className="w-5 h-5" />
+             Catatan Validasi Dosen/Pakar
+           </h3>
+           <p className="text-emerald-800 text-sm whitespace-pre-wrap">{session.expertFeedback}</p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left Column: Overview & Scores */}
@@ -280,7 +377,7 @@ export default function ReportPage() {
               </li>
               <li className="flex justify-between">
                 <span className="text-slate-500">Interviewer Style</span>
-                <span className="font-medium text-slate-900 capitalize">{session.interviewerPersonality}</span>
+                <span className="font-medium text-slate-900 capitalize">{session.personality}</span>
               </li>
               <li className="flex justify-between">
                 <span className="text-slate-500">Duration</span>
@@ -304,6 +401,34 @@ export default function ReportPage() {
               {analysis.overallFeedback}
             </p>
           </div>
+
+          {/* STAR Analysis */}
+          {session.starAnalysis && (
+            <div className="bg-indigo-50 p-6 rounded-2xl border border-indigo-100 shadow-sm">
+              <h3 className="text-indigo-900 font-bold mb-4 flex items-center gap-2">
+                <Activity className="w-5 h-5" />
+                Evaluasi Metode STAR (Situation, Task, Action, Result)
+              </h3>
+              <div className="space-y-4">
+                <div className="bg-white/80 p-4 rounded-xl">
+                  <p className="text-xs text-indigo-600 font-bold uppercase tracking-wider mb-1">Situation (Situasi)</p>
+                  <p className="text-sm font-medium text-slate-800">{session.starAnalysis.situation}</p>
+                </div>
+                <div className="bg-white/80 p-4 rounded-xl">
+                  <p className="text-xs text-indigo-600 font-bold uppercase tracking-wider mb-1">Task (Tugas/Tantangan)</p>
+                  <p className="text-sm font-medium text-slate-800">{session.starAnalysis.task}</p>
+                </div>
+                <div className="bg-white/80 p-4 rounded-xl">
+                  <p className="text-xs text-indigo-600 font-bold uppercase tracking-wider mb-1">Action (Tindakan)</p>
+                  <p className="text-sm font-medium text-slate-800">{session.starAnalysis.action}</p>
+                </div>
+                <div className="bg-white/80 p-4 rounded-xl">
+                  <p className="text-xs text-indigo-600 font-bold uppercase tracking-wider mb-1">Result (Hasil Akhir)</p>
+                  <p className="text-sm font-medium text-slate-800">{session.starAnalysis.result}</p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Strengths & Weaknesses */}
           <div className="grid md:grid-cols-2 gap-6">
@@ -340,23 +465,23 @@ export default function ReportPage() {
 
           {/* Facial Expression Analysis */}
           {analysis.expressionAnalysis && (
-            <div className="bg-indigo-50 p-6 rounded-2xl border border-indigo-100 shadow-sm">
-              <h3 className="text-indigo-900 font-bold mb-4 flex items-center gap-2">
+            <div className="bg-blue-50 p-6 rounded-2xl border border-blue-100 shadow-sm">
+              <h3 className="text-blue-900 font-bold mb-4 flex items-center gap-2">
                 <Activity className="w-5 h-5" />
                 Facial Expression & Body Language
               </h3>
               <div className="grid md:grid-cols-2 gap-4 mb-4">
                 <div className="bg-white/60 p-4 rounded-xl">
-                  <p className="text-xs text-indigo-600 font-bold uppercase tracking-wider mb-1">Confidence Level</p>
+                  <p className="text-xs text-blue-600 font-bold uppercase tracking-wider mb-1">Confidence Level</p>
                   <p className="text-lg font-semibold text-slate-900 capitalize">{analysis.expressionAnalysis.confidenceLevel}</p>
                 </div>
                 <div className="bg-white/60 p-4 rounded-xl">
-                  <p className="text-xs text-indigo-600 font-bold uppercase tracking-wider mb-1">Dominant Expression</p>
+                  <p className="text-xs text-blue-600 font-bold uppercase tracking-wider mb-1">Dominant Expression</p>
                   <p className="text-lg font-semibold text-slate-900 capitalize">{analysis.expressionAnalysis.dominantExpression}</p>
                 </div>
               </div>
               <div className="bg-white/80 p-4 rounded-xl text-sm text-slate-700 leading-relaxed">
-                <strong className="text-indigo-900 block mb-1">AI Feedback:</strong>
+                <strong className="text-blue-900 block mb-1">AI Feedback:</strong>
                 {analysis.expressionAnalysis.expressionFeedback}
               </div>
             </div>
