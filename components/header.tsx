@@ -32,6 +32,12 @@ export default function Header() {
         { href: '/reports', label: 'Laporan' },
         { href: '/profile', label: 'Profil' },
     ];
+  } else if (userData?.role === 'dean') {
+    navLinks = [
+        { href: '/dashboard', label: 'Dashboard Dean' },
+        { href: '/reports', label: 'Laporan' },
+        { href: '/profile', label: 'Profil' },
+    ];
   }
 
   return (

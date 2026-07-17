@@ -91,7 +91,7 @@ export default function ReportPage() {
   }
 
   const analysis = session.analysis;
-  const isLecturerOrAdmin = userData?.role === 'lecturer' || userData?.role === 'administrator' || userData?.role === 'head_of_program';
+  const isLecturerOrAdmin = userData?.role === 'lecturer' || userData?.role === 'administrator' || userData?.role === 'head_of_program' || userData?.role === 'dean';
 
   const handleRunAnalysis = async () => {
     if (!session.transcript || session.transcript.length < 2) {

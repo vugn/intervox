@@ -43,7 +43,7 @@ export default function AdminDashboard() {
     <div className="container mx-auto px-4 py-8 max-w-7xl">
       <div className="mb-8">
         <h1 className="text-2xl md:text-3xl font-display font-bold text-slate-900">
-          Dashboard Administrator
+          {userData?.role === 'dean' ? 'Dashboard Dean' : 'Dashboard Administrator'}
         </h1>
         <p className="text-slate-500 mt-1">Ringkasan aktivitas platform dan manajemen pengguna.</p>
       </div>
@@ -110,23 +110,27 @@ export default function AdminDashboard() {
           {/* Quick Actions */}
           <h2 className="text-lg font-bold text-slate-900 mb-4">Akses Cepat</h2>
           <div className="grid md:grid-cols-3 gap-6">
-            <Link href="/admin/users" className="group bg-white border border-slate-200 rounded-2xl p-6 hover:shadow-md transition-all block">
-              <ShieldCheck className="w-8 h-8 text-indigo-600 mb-4" />
-              <h3 className="font-bold text-slate-900 mb-1">Verifikasi Pengguna</h3>
-              <p className="text-sm text-slate-500 mb-4">Kelola akses dan periksa mahasiswa yang baru mendaftar.</p>
-              <span className="text-sm font-semibold text-indigo-600 flex items-center gap-1 group-hover:gap-2 transition-all">
-                Kelola Pengguna <ArrowRight className="w-4 h-4" />
-              </span>
-            </Link>
+            {userData?.role !== 'dean' && (
+              <>
+                <Link href="/admin/users" className="group bg-white border border-slate-200 rounded-2xl p-6 hover:shadow-md transition-all block">
+                  <ShieldCheck className="w-8 h-8 text-indigo-600 mb-4" />
+                  <h3 className="font-bold text-slate-900 mb-1">Verifikasi Pengguna</h3>
+                  <p className="text-sm text-slate-500 mb-4">Kelola akses dan periksa mahasiswa yang baru mendaftar.</p>
+                  <span className="text-sm font-semibold text-indigo-600 flex items-center gap-1 group-hover:gap-2 transition-all">
+                    Kelola Pengguna <ArrowRight className="w-4 h-4" />
+                  </span>
+                </Link>
 
-            <Link href="/admin/settings" className="group bg-white border border-slate-200 rounded-2xl p-6 hover:shadow-md transition-all block">
-              <Settings className="w-8 h-8 text-indigo-600 mb-4" />
-              <h3 className="font-bold text-slate-900 mb-1">Pengaturan Sistem</h3>
-              <p className="text-sm text-slate-500 mb-4">Ubah data Tanda Tangan, QR Code, dan konfigurasi laporan.</p>
-              <span className="text-sm font-semibold text-indigo-600 flex items-center gap-1 group-hover:gap-2 transition-all">
-                Buka Pengaturan <ArrowRight className="w-4 h-4" />
-              </span>
-            </Link>
+                <Link href="/admin/settings" className="group bg-white border border-slate-200 rounded-2xl p-6 hover:shadow-md transition-all block">
+                  <Settings className="w-8 h-8 text-indigo-600 mb-4" />
+                  <h3 className="font-bold text-slate-900 mb-1">Pengaturan Sistem</h3>
+                  <p className="text-sm text-slate-500 mb-4">Ubah data Tanda Tangan, QR Code, dan konfigurasi laporan.</p>
+                  <span className="text-sm font-semibold text-indigo-600 flex items-center gap-1 group-hover:gap-2 transition-all">
+                    Buka Pengaturan <ArrowRight className="w-4 h-4" />
+                  </span>
+                </Link>
+              </>
+            )}
 
             <Link href="/reports" className="group bg-white border border-slate-200 rounded-2xl p-6 hover:shadow-md transition-all block">
               <FileText className="w-8 h-8 text-indigo-600 mb-4" />

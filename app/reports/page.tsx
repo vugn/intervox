@@ -7,7 +7,7 @@ import { useAuth } from '@/hooks/use-auth';
 
 export default function ReportsPage() {
     const { userData } = useAuth();
-    const isAdmin = userData?.role === 'administrator';
+    const isAdmin = userData?.role === 'administrator' || userData?.role === 'dean';
     const visibleReports = isAdmin 
         ? REPORT_ITEMS.filter((report) => report.adminOnly || report.type === 'score-evaluation')
         : REPORT_ITEMS.filter((report) => !report.adminOnly);
