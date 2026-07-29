@@ -79,9 +79,9 @@ export default function AdminSettingsPage() {
       ) : (
         <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
           <div className="p-6 sm:p-8 border-b border-slate-200">
-            <h2 className="text-lg font-bold text-slate-900 mb-4">Pengesahan Laporan (Dosen Pembimbing / Penguji)</h2>
+            <h2 className="text-lg font-bold text-slate-900 mb-4">Pengesahan Laporan (Dekan Fakultas Teknologi Informasi)</h2>
             <p className="text-sm text-slate-500 mb-6">
-              Data ini akan ditampilkan di bagian bawah kanan (tanda tangan) pada laporan-laporan resmi yang dicetak dari sistem.
+              Data ini akan ditampilkan di bagian bawah kanan (tanda tangan Dekan) pada laporan-laporan resmi yang dicetak dari sistem.
             </p>
 
             {message && (
@@ -98,7 +98,7 @@ export default function AdminSettingsPage() {
                     type="text"
                     value={headOfProgram.name}
                     onChange={(e) => setHeadOfProgram({ ...headOfProgram, name: e.target.value })}
-                    placeholder="Prof. Dr. Budi Santoso, M.Kom"
+                    placeholder="Prof. Dr. Hj. Silvia Ratna, S.Kom., M.Kom."
                     className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
                   />
                 </div>
@@ -108,7 +108,7 @@ export default function AdminSettingsPage() {
                     type="text"
                     value={headOfProgram.nip}
                     onChange={(e) => setHeadOfProgram({ ...headOfProgram, nip: e.target.value })}
-                    placeholder="19800101 200501 1 001"
+                    placeholder="19750913 200501 2 001"
                     className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
                   />
                 </div>

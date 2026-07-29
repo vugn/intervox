@@ -15,6 +15,7 @@ export const REPORT_ITEMS: ReportItem[] = [
     description: "Dokumen log percakapan lengkap sesi interview.",
     type: "transcript",
     exportTypes: ["PDF", "Excel"],
+    requireSignature: true,
   },
   {
     id: "r2",
@@ -30,6 +31,7 @@ export const REPORT_ITEMS: ReportItem[] = [
     description: "Rincian kekuatan dan area perbaikan jawaban.",
     type: "strength-weakness",
     exportTypes: ["PDF", "Excel"],
+    requireSignature: true,
   },
   {
     id: "r4",
@@ -37,6 +39,7 @@ export const REPORT_ITEMS: ReportItem[] = [
     description: "Tabel jawaban user versus jawaban ideal.",
     type: "answer-comparison",
     exportTypes: ["PDF", "Excel"],
+    requireSignature: true,
   },
   {
     id: "r5",
@@ -44,6 +47,7 @@ export const REPORT_ITEMS: ReportItem[] = [
     description: "Tren skor latihan dari waktu ke waktu.",
     type: "progress-chart",
     exportTypes: ["PDF", "Excel"],
+    requireSignature: true,
   },
   {
     id: "r6",
@@ -51,6 +55,7 @@ export const REPORT_ITEMS: ReportItem[] = [
     description: "Saran belajar dan latihan yang dipersonalisasi AI.",
     type: "development-recommendation",
     exportTypes: ["PDF", "Excel"],
+    requireSignature: true,
   },
   {
     id: "r7",
@@ -77,6 +82,7 @@ export const REPORT_ITEMS: ReportItem[] = [
     type: "difficulty-analysis",
     exportTypes: ["PDF", "Excel"],
     adminOnly: true,
+    requireSignature: true,
   },
   {
     id: "r10",
@@ -84,6 +90,7 @@ export const REPORT_ITEMS: ReportItem[] = [
     description: "Bukti menyelesaikan sesi latihan interview.",
     type: "certificate",
     exportTypes: ["PDF"],
+    requireSignature: false,
   },
   {
     id: "r11",
@@ -92,6 +99,7 @@ export const REPORT_ITEMS: ReportItem[] = [
     type: "system-stats",
     exportTypes: ["PDF", "Excel"],
     adminOnly: true,
+    requireSignature: true,
   },
   {
     id: "r12",
@@ -100,6 +108,7 @@ export const REPORT_ITEMS: ReportItem[] = [
     type: "user-feedback",
     exportTypes: ["PDF", "Excel"],
     adminOnly: true,
+    requireSignature: true,
   },
 ];
 

@@ -472,6 +472,7 @@ export default function ReportDetailPage() {
             dateRange={fromDate || toDate ? { start: fromDate || '-', end: toDate || '-' } : undefined}
             headOfProgram={headOfProgram}
             requireSignature={report.requireSignature}
+            hideHeader={type === 'certificate'}
         >
             <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4 print:hidden">
                 <div>
@@ -564,11 +565,11 @@ export default function ReportDetailPage() {
                     </div>
                 ) : (
                     <div className="overflow-x-auto print:overflow-visible">
-                        <table className="w-full text-sm print:table-fixed">
-                            <thead className="bg-slate-50 text-slate-600">
+                        <table className="w-full text-sm print:text-xs print:border-collapse border border-slate-200 print:border-slate-400">
+                            <thead className="bg-slate-50 print:bg-slate-100 text-slate-700 print:text-slate-900 font-semibold border-b-2 border-slate-300 print:border-slate-400">
                                 <tr>
                                     {headers.map((header) => (
-                                        <th key={header} className="px-4 py-3 text-left font-semibold whitespace-nowrap print:whitespace-normal">{header}</th>
+                                        <th key={header} className="px-4 py-3 print:px-3 print:py-2.5 text-left font-semibold whitespace-nowrap print:whitespace-normal border-r last:border-r-0 border-slate-200 print:border-slate-400">{header}</th>
                                     ))}
                                 </tr>
                             </thead>
@@ -578,9 +579,9 @@ export default function ReportDetailPage() {
                                 ) : rows.length === 0 ? (
                                     <tr><td className="px-4 py-4 text-slate-500" colSpan={Math.max(headers.length, 1)}>Belum ada data laporan untuk ditampilkan.</td></tr>
                                 ) : rows.map((row, index) => (
-                                    <tr key={index} className="border-t border-slate-100">
+                                    <tr key={index} className="border-t border-slate-200 print:border-slate-400 hover:bg-slate-50/50">
                                         {headers.map((header) => (
-                                            <td key={header} className="px-4 py-3 text-slate-700 whitespace-nowrap print:whitespace-normal break-words">{String(row[header] ?? '-')}</td>
+                                            <td key={header} className="px-4 py-3 print:px-3 print:py-2.5 text-slate-700 print:text-slate-900 whitespace-nowrap print:whitespace-normal break-words border-r last:border-r-0 border-slate-200 print:border-slate-400">{String(row[header] ?? '-')}</td>
                                         ))}
                                     </tr>
                                 ))}

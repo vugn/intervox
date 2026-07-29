@@ -2,15 +2,17 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
-import { listUserFeedbacks } from '@/lib/data-service';
+import { listUserFeedbacks, getSystemSettings } from '@/lib/data-service';
 import Link from 'next/link';
-import { ArrowLeft, MessageSquare, Star, User } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Star, User, Download } from 'lucide-react';
 import * as motion from 'motion/react-client';
+import ReportTemplate from '@/components/report-template';
 
 export default function UserFeedbackReport() {
   const { user, userData, loading: authLoading } = useAuth();
   const [feedbacks, setFeedbacks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [headOfProgram, setHeadOfProgram] = useState<any>(null);
 
   useEffect(() => {
     const fetchFeedbacks = async () => {
@@ -23,6 +25,8 @@ export default function UserFeedbackReport() {
       try {
         const data = await listUserFeedbacks();
         setFeedbacks(data);
+        const settings = await getSystemSettings('head_of_program_signature');
+        setHeadOfProgram(settings);
       } catch (error) {
         console.error("Error fetching feedbacks:", error);
       } finally {
@@ -60,15 +64,20 @@ export default function UserFeedbackReport() {
     : 0;
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-5xl">
-      <Link href="/reports" className="inline-flex items-center text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors mb-4">
-        <ArrowLeft className="w-4 h-4 mr-1" />
-        Kembali ke Daftar Laporan
-      </Link>
-      
-      <div className="mb-8">
-        <h1 className="text-2xl md:text-3xl font-display font-bold text-slate-900">Laporan Feedback Pengguna</h1>
-        <p className="text-slate-500 mt-1">Umpan balik dan penilaian dari mahasiswa setelah menggunakan platform.</p>
+    <ReportTemplate
+      title="Laporan Feedback Pengguna"
+      subtitle="Umpan balik dan penilaian dari mahasiswa setelah menggunakan platform."
+      requireSignature={true}
+      headOfProgram={headOfProgram}
+    >
+      <div className="mb-6 flex items-center justify-between gap-4 print:hidden">
+        <Link href="/reports" className="inline-flex items-center text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors">
+          <ArrowLeft className="w-4 h-4 mr-1" />
+          Kembali ke Daftar Laporan
+        </Link>
+        <button onClick={() => window.print()} className="bg-indigo-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors flex items-center gap-2">
+          <Download className="w-4 h-4" />Export PDF
+        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -128,6 +137,6 @@ export default function UserFeedbackReport() {
           )}
         </div>
       </div>
-    </div>
+    </ReportTemplate>
   );
 }

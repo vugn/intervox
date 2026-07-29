@@ -2,10 +2,10 @@ import React from 'react';
 import QRCode from 'react-qr-code';
 
 interface HeadOfProgramData {
-  name: string;
-  nip: string;
-  signature_url: string;
-  qr_code_data: string;
+  name?: string;
+  nip?: string;
+  signature_url?: string;
+  qr_code_data?: string;
 }
 
 interface ReportTemplateProps {
@@ -13,8 +13,9 @@ interface ReportTemplateProps {
   subtitle?: string;
   dateRange?: { start: string; end: string };
   children: React.ReactNode;
-  headOfProgram: HeadOfProgramData | null;
+  headOfProgram?: HeadOfProgramData | null;
   requireSignature?: boolean;
+  hideHeader?: boolean;
 }
 
 export default function ReportTemplate({
@@ -24,6 +25,7 @@ export default function ReportTemplate({
   children,
   headOfProgram,
   requireSignature = false,
+  hideHeader = false,
 }: ReportTemplateProps) {
   const currentDate = new Date().toLocaleDateString('id-ID', {
     day: 'numeric',
@@ -31,48 +33,60 @@ export default function ReportTemplate({
     year: 'numeric'
   });
 
+  const dekanName = (headOfProgram?.name && headOfProgram.name.trim() !== '')
+    ? headOfProgram.name
+    : 'Prof. Dr. Hj. Silvia Ratna, S.Kom., M.Kom.';
+  const dekanNip = (headOfProgram?.nip && headOfProgram.nip.trim() !== '')
+    ? headOfProgram.nip
+    : '19750913 200501 2 001';
+
   return (
-    <div className="bg-white p-8 w-full max-w-[210mm] mx-auto text-slate-900 print:p-0 print:max-w-none print:w-full print:bg-transparent shadow-sm print:shadow-none min-h-[297mm]">
+    <div className={`bg-white ${hideHeader ? 'p-0 max-w-none print:p-6' : 'p-8 md:p-12 max-w-[210mm] print:px-12 print:py-10'} w-full mx-auto text-slate-900 print:max-w-none print:w-full print:bg-transparent shadow-sm print:shadow-none min-h-[297mm]`}>
       
       {/* KOP SURAT / HEADER */}
-      <div className="flex items-center border-b-2 border-slate-900 pb-6 mb-6">
-        <div className="flex-1 text-center">
-          <h1 className="text-xl font-bold uppercase tracking-wider mb-1">UNIVERSITAS ISLAM KALIMANTAN (UNISKA)</h1>
-          <h2 className="text-sm font-semibold text-slate-600 uppercase tracking-wide">FAKULTAS TEKNOLOGI INFORMASI</h2>
-          <p className="text-xs text-slate-500 mt-2">Jl. Adhyaksa No.2 Kayu Tangi, Banjarmasin, Kalimantan Selatan</p>
+      {!hideHeader && (
+        <div className="flex items-center border-b-[3px] border-double border-slate-900 pb-5 mb-8 print:pb-4 print:mb-6">
+          <div className="flex-1 text-center">
+            <h1 className="text-xl md:text-2xl font-black uppercase tracking-wider text-slate-900 mb-1">UNIVERSITAS ISLAM KALIMANTAN (UNISKA)</h1>
+            <h2 className="text-sm md:text-base font-bold text-slate-800 uppercase tracking-wide">FAKULTAS TEKNOLOGI INFORMASI</h2>
+            <p className="text-xs text-slate-600 mt-1 font-medium">Jl. Adhyaksa No.2 Kayu Tangi, Banjarmasin, Kalimantan Selatan</p>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* REPORT TITLE */}
-      <div className="text-center mb-8">
-        <h3 className="text-lg font-bold underline uppercase">{title}</h3>
-        {subtitle && <p className="text-sm text-slate-600 mt-1">{subtitle}</p>}
-        {dateRange && (
-          <p className="text-xs text-slate-500 mt-2">
-            Periode: {dateRange.start} s.d {dateRange.end}
-          </p>
-        )}
-      </div>
+      {!hideHeader && (
+        <div className="text-center mb-8 print:mb-6">
+          <h3 className="text-lg md:text-xl font-bold uppercase tracking-wide text-slate-900">{title}</h3>
+          <div className="w-20 h-0.5 bg-slate-900 mx-auto mt-2 mb-2 print:my-1.5"></div>
+          {subtitle && <p className="text-sm text-slate-600 mt-1 max-w-2xl mx-auto">{subtitle}</p>}
+          {dateRange && (
+            <p className="text-xs font-medium text-slate-500 mt-2 inline-block bg-slate-100 px-3 py-1 rounded-full print:bg-transparent print:border print:border-slate-300">
+              Periode: {dateRange.start} s.d {dateRange.end}
+            </p>
+          )}
+        </div>
+      )}
 
-      {/* REPORT CONTENT (TABLES/CHARTS) */}
-      <div className="mb-12 min-h-[400px]">
+      {/* REPORT CONTENT (TABLES/CHARTS/CERTIFICATE) */}
+      <div className="mb-12 print:mb-8 min-h-[350px]">
         {children}
       </div>
 
       {/* PENGESAHAN / SIGNATURE BLOCK */}
-      {requireSignature && headOfProgram && (
-        <div className="flex justify-end mt-16 print:mt-auto break-inside-avoid">
+      {requireSignature && !hideHeader && (
+        <div className="flex justify-end mt-16 print:mt-10 print:pt-6 break-inside-avoid">
           <div className="text-center">
             <p className="text-sm mb-1">Banjarmasin, {currentDate}</p>
-            <p className="text-sm font-semibold mb-4">Dosen Pembimbing / Penguji</p>
+            <p className="text-sm font-semibold mb-4">Dekan Fakultas Teknologi Informasi</p>
             
             <div className="flex justify-center items-center gap-4 my-4 h-24">
-              {headOfProgram.qr_code_data && (
+              {headOfProgram?.qr_code_data && (
                 <div className="p-1 border border-slate-200 rounded-lg bg-white">
                   <QRCode value={headOfProgram.qr_code_data} size={64} />
                 </div>
               )}
-              {headOfProgram.signature_url ? (
+              {headOfProgram?.signature_url ? (
                 <img 
                   src={headOfProgram.signature_url} 
                   alt="Tanda Tangan" 
@@ -84,8 +98,8 @@ export default function ReportTemplate({
               )}
             </div>
 
-            <p className="text-sm font-bold underline">{headOfProgram.name || 'Nama Kepala Program'}</p>
-            <p className="text-xs text-slate-600 mt-1">NIP/NIDN: {headOfProgram.nip || '.......................'}</p>
+            <p className="text-sm font-bold underline">{dekanName}</p>
+            <p className="text-xs text-slate-600 mt-1">NIP/NIDN: {dekanNip}</p>
           </div>
         </div>
       )}

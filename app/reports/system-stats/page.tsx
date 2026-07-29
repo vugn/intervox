@@ -2,15 +2,17 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
-import { getSystemUsageStats } from '@/lib/data-service';
+import { getSystemUsageStats, getSystemSettings } from '@/lib/data-service';
 import Link from 'next/link';
-import { ArrowLeft, Activity, Clock, FileText, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Activity, Clock, FileText, CheckCircle, Download } from 'lucide-react';
 import * as motion from 'motion/react-client';
+import ReportTemplate from '@/components/report-template';
 
 export default function SystemStatsReport() {
   const { user, userData, loading: authLoading } = useAuth();
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [headOfProgram, setHeadOfProgram] = useState<any>(null);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -23,6 +25,8 @@ export default function SystemStatsReport() {
       try {
         const data = await getSystemUsageStats();
         setStats(data);
+        const settings = await getSystemSettings('head_of_program_signature');
+        setHeadOfProgram(settings);
       } catch (error) {
         console.error("Error fetching system stats:", error);
       } finally {
@@ -56,15 +60,20 @@ export default function SystemStatsReport() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-5xl">
-      <Link href="/reports" className="inline-flex items-center text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors mb-4">
-        <ArrowLeft className="w-4 h-4 mr-1" />
-        Kembali ke Daftar Laporan
-      </Link>
-      
-      <div className="mb-8">
-        <h1 className="text-2xl md:text-3xl font-display font-bold text-slate-900">Laporan Statistik Penggunaan Sistem</h1>
-        <p className="text-slate-500 mt-1">Data analitik penggunaan modul wawancara oleh mahasiswa secara keseluruhan.</p>
+    <ReportTemplate
+      title="Laporan Statistik Penggunaan Sistem"
+      subtitle="Data analitik penggunaan modul wawancara oleh mahasiswa secara keseluruhan."
+      requireSignature={true}
+      headOfProgram={headOfProgram}
+    >
+      <div className="mb-6 flex items-center justify-between gap-4 print:hidden">
+        <Link href="/reports" className="inline-flex items-center text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors">
+          <ArrowLeft className="w-4 h-4 mr-1" />
+          Kembali ke Daftar Laporan
+        </Link>
+        <button onClick={() => window.print()} className="bg-indigo-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors flex items-center gap-2">
+          <Download className="w-4 h-4" />Export PDF
+        </button>
       </div>
 
       {!stats ? (
@@ -116,8 +125,6 @@ export default function SystemStatsReport() {
 
         </div>
       )}
-
-      {/* Further details could be added here in the future like chart visualisations */}
-    </div>
+    </ReportTemplate>
   );
 }
