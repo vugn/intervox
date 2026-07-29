@@ -61,16 +61,21 @@ export default function PendingVerificationPage() {
 
         <div className="space-y-3">
           <button 
+            type="button"
             onClick={() => window.location.reload()}
-            className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-4 rounded-xl font-medium transition-colors"
+            className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-4 rounded-xl font-medium transition-colors cursor-pointer relative z-10 active:scale-95"
           >
             <RefreshCw className="w-4 h-4" />
             Cek Status Terbaru
           </button>
           
           <button 
-            onClick={() => logout()}
-            className="w-full flex items-center justify-center gap-2 text-slate-600 hover:text-slate-900 py-3 px-4 rounded-xl font-medium transition-colors"
+            type="button"
+            onClick={async () => {
+              await logout();
+              window.location.href = '/';
+            }}
+            className="w-full flex items-center justify-center gap-2 text-slate-600 hover:text-slate-900 py-3 px-4 rounded-xl font-medium transition-colors cursor-pointer relative z-10 active:scale-95"
           >
             Keluar (Logout)
           </button>

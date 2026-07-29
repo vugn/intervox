@@ -19,7 +19,7 @@ export async function notifyNewRegistration(userName: string, userEmail: string)
     // Note: We'd need admin privileges to query all users, or an RPC.
     // For simplicity, we just send it to a default admin email if RESEND_ADMIN_EMAIL is set,
     // otherwise fallback to a generic admin notification.
-    const adminEmail = process.env.RESEND_ADMIN_EMAIL || 'admin@intervox.com';
+    const adminEmail = process.env.RESEND_ADMIN_EMAIL || 'gustiranda3014@gmail.com';
     const dashboardUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/admin/users`;
     
     await sendEmail({

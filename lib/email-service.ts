@@ -7,7 +7,7 @@ const resend = resendApiKey ? new Resend(resendApiKey) : null;
 
 // The default "From" address (must be a verified domain in Resend)
 // If you don't have a verified domain, Resend provides a testing domain (onboarding@resend.dev)
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'noreply@proposigo.app';
 
 interface EmailParams {
   to: string;
