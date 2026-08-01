@@ -15,6 +15,8 @@ export default function Home() {
     if (!loading && user) {
       if (userData?.accountStatus === 'pending') {
         router.replace('/pending');
+      } else if (userData?.role === 'lecturer') {
+        router.replace('/lecturer');
       } else {
         router.replace('/dashboard');
       }

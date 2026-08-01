@@ -44,11 +44,18 @@ export default function Header() {
     ];
   }
 
+  const getLogoHref = () => {
+    if (!user) return '/';
+    if (userData?.accountStatus === 'pending') return '/pending';
+    if (userData?.role === 'lecturer') return '/lecturer';
+    return '/dashboard';
+  };
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white/90 backdrop-blur-md print:hidden">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         {/* Brand */}
-        <Link href="/" className="flex items-center gap-2 font-display font-bold text-xl text-indigo-600 flex-shrink-0">
+        <Link href={getLogoHref()} className="flex items-center gap-2 font-display font-bold text-xl text-indigo-600 flex-shrink-0">
           <Mic className="w-6 h-6" />
           <span>Intervox</span>
         </Link>

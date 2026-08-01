@@ -55,6 +55,18 @@ export default function Dashboard() {
     );
   }
 
+  if (userData?.role === 'lecturer') {
+    if (typeof window !== 'undefined') {
+      window.location.replace('/lecturer');
+    }
+    return (
+      <div className="flex-1 flex items-center justify-center p-4">
+        <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+        <p className="mt-4 text-slate-500">Mengalihkan ke Dashboard Dosen...</p>
+      </div>
+    );
+  }
+
   if (userData?.role === 'administrator' || userData?.role === 'dean') {
     return <AdminDashboard />;
   }
