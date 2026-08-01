@@ -61,9 +61,10 @@ export default function ReportDetailPage() {
                 const isAggregatedReport = [
                     'active-participants', 'module-statistics', 'difficulty-analysis', 'system-stats', 'user-feedback',
                     'question-bank-usage', 'student-competency-summary', 'class-error-analysis',
-                    'question-difficulty-evaluation', 'student-practice-attendance', 'lecturer-mentoring-summary'
+                    'question-difficulty-evaluation', 'student-practice-attendance', 'lecturer-mentoring-summary',
+                    'score-evaluation'
                 ].includes(type);
-                const sessionsRaw: any[] = isAggregatedReport
+                const sessionsRaw: any[] = (isAggregatedReport || isAdmin)
                     ? await listAllSessions()
                     : (user ? await listSessionsByUser(user.id) : []);
 
@@ -130,7 +131,7 @@ export default function ReportDetailPage() {
                         break;
                     }
                     case 'score-evaluation': {
-                        dynamicRows = sessions.slice(0, 20).map((session: any) => ({
+                        dynamicRows = sessions.map((session: any) => ({
                             Sesi: String(session.id),
                             Kandidat: String(session.candidateName || userData?.displayName || user?.user_metadata?.full_name || '-'),
                             Posisi: String(session.jobRole || '-'),
@@ -353,31 +354,33 @@ export default function ReportDetailPage() {
                         break;
                     }
                     case 'class-error-analysis': {
-                        let totalLow = 0;
-                        const weaknessMap = new Map<string, number>();
+                        const weaknessMap = new Map<string, { count: number; recs: Set<string> }>();
                         sessions.forEach((session: any) => {
-                            const score = getSessionScore(session);
-                            if (score > 0 && score < 75) {
-                                totalLow++;
-                                const item = 'Struktur STAR & Ketajaman Jawaban';
-                                weaknessMap.set(item, (weaknessMap.get(item) || 0) + 1);
-                            }
-                            if (session.analysis?.scores) {
-                                const sc = session.analysis.scores;
-                                if (sc.communication && Number(sc.communication) < 75) {
-                                    weaknessMap.set('Artikulasi & Kejelasan Komunikasi', (weaknessMap.get('Artikulasi & Kejelasan Komunikasi') || 0) + 1);
+                            const weaknesses = Array.isArray(session.analysis?.weaknesses) ? session.analysis.weaknesses : [];
+                            const role = String(session.jobRole || session.moduleType || 'Umum');
+
+                            weaknesses.forEach((w: string) => {
+                                const cleanW = w.trim();
+                                if (!cleanW) return;
+                                const current = weaknessMap.get(cleanW) || { count: 0, recs: new Set<string>() };
+                                current.count += 1;
+                                if (session.analysis?.overallFeedback) {
+                                    current.recs.add(String(session.analysis.overallFeedback));
+                                } else {
+                                    current.recs.add(`Evaluasi ${role}: fokus perbaikan pada aspek ${cleanW}`);
                                 }
-                                if (sc.technical && Number(sc.technical) < 75) {
-                                    weaknessMap.set('Kedalaman Solusi & Kompetensi Teknis', (weaknessMap.get('Kedalaman Solusi & Kompetensi Teknis') || 0) + 1);
-                                }
-                            }
+                                weaknessMap.set(cleanW, current);
+                            });
                         });
-                        dynamicRows = Array.from(weaknessMap.entries()).map(([kriteria, count]) => ({
-                            'Indikator / Kriteria': kriteria,
-                            'Sesi Skor Di Bawah Standar': count,
-                            'Persentase Kelemahan (%)': sessions.length ? Math.round((count / sessions.length) * 100) : 0,
-                            'Rekomendasi Dosen': 'Perbanyak latihan studi kasus & struktur presentasi',
-                        }));
+                        dynamicRows = Array.from(weaknessMap.entries()).map(([weaknessText, val]) => {
+                            const recArray = Array.from(val.recs);
+                            return {
+                                'Indikator / Area Kelemahan': weaknessText,
+                                'Jumlah Sesi Terdeteksi': val.count,
+                                'Persentase Kelemahan (%)': sessions.length ? Math.round((val.count / sessions.length) * 100) : 0,
+                                'Rekomendasi AI': recArray[0] || '-'
+                            };
+                        });
                         break;
                     }
                     case 'question-difficulty-evaluation': {
