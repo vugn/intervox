@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { listAllUsers, updateUserAccountStatus } from '@/lib/data-service';
 import { notifyAccountApproved } from '@/app/actions/email';
 import { useAuth } from '@/hooks/use-auth';
-import { CheckCircle, XCircle, Clock, Search, AlertCircle, Loader2 } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Search, AlertCircle, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 
 type UserData = {
   id: string;
@@ -22,6 +22,7 @@ export default function AdminUsersPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
   const [search, setSearch] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     fetchUsers();
@@ -73,11 +74,19 @@ export default function AdminUsersPage() {
     );
   }
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, filter]);
+
   const filteredUsers = users.filter(u => {
     const matchesFilter = filter === 'all' || u.accountStatus === filter;
     const matchesSearch = u.fullName.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase());
     return matchesFilter && matchesSearch;
   });
+
+  const itemsPerPage = 10;
+  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / itemsPerPage));
+  const paginatedUsers = filteredUsers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
     <div className="max-w-6xl mx-auto w-full p-4 sm:p-6 lg:p-8">
@@ -141,7 +150,7 @@ export default function AdminUsersPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredUsers.map((user) => (
+                {paginatedUsers.map((user) => (
                   <tr key={user.id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="px-6 py-4">
                       <div className="font-medium text-slate-900">{user.fullName}</div>
@@ -191,6 +200,34 @@ export default function AdminUsersPage() {
                 ))}
               </tbody>
             </table>
+
+            {/* Pagination Bar */}
+            <div className="p-4 border-t border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-sm text-slate-600">
+              <div>
+                Menampilkan <span className="font-semibold text-slate-900">{filteredUsers.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1}</span> - <span className="font-semibold text-slate-900">{Math.min(currentPage * itemsPerPage, filteredUsers.length)}</span> dari <span className="font-semibold text-slate-900">{filteredUsers.length}</span> pengguna
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="p-2 border border-slate-200 rounded-xl bg-white hover:bg-slate-100 disabled:opacity-40 disabled:hover:bg-white transition-colors"
+                  title="Halaman Sebelumnya"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <span className="px-3 py-1 font-medium bg-indigo-50 text-indigo-700 rounded-lg">
+                  {currentPage} / {totalPages}
+                </span>
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="p-2 border border-slate-200 rounded-xl bg-white hover:bg-slate-100 disabled:opacity-40 disabled:hover:bg-white transition-colors"
+                  title="Halaman Berikutnya"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>

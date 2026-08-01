@@ -4,13 +4,15 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { listAllSessions, listAllUsers } from '@/lib/data-service';
 import Link from 'next/link';
-import { Users, FileText, BarChart2, ChevronRight, FileSpreadsheet } from 'lucide-react';
+import { Users, FileText, BarChart2, ChevronRight, FileSpreadsheet, Search, ChevronLeft } from 'lucide-react';
 import * as motion from 'motion/react-client';
 
 export default function LecturerDashboard() {
   const { user, userData, loading: authLoading } = useAuth();
   const [students, setStudents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -101,6 +103,15 @@ export default function LecturerDashboard() {
   const activeStudents = students.filter(s => s.totalSessions > 0);
   const totalSimulations = students.reduce((acc, s) => acc + s.totalSessions, 0);
 
+  const filteredStudents = students.filter(s => {
+    const q = search.toLowerCase();
+    return (s.fullName || '').toLowerCase().includes(q) || (s.email || '').toLowerCase().includes(q);
+  });
+
+  const itemsPerPage = 10;
+  const totalPages = Math.max(1, Math.ceil(filteredStudents.length / itemsPerPage));
+  const paginatedStudents = filteredStudents.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
@@ -121,30 +132,32 @@ export default function LecturerDashboard() {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-          <div className="w-14 h-14 rounded-xl flex items-center justify-center bg-blue-100 text-blue-600">
-            <Users className="w-7 h-7" />
+          <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+            <Users className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-sm font-medium text-slate-500">Mahasiswa Aktif</p>
-            <p className="text-3xl font-bold text-slate-900">{activeStudents.length} <span className="text-lg font-normal text-slate-400">/ {students.length}</span></p>
+            <p className="text-sm text-slate-500 font-medium">Total Mahasiswa</p>
+            <p className="text-2xl font-bold text-slate-900">{students.length}</p>
           </div>
         </div>
+
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-          <div className="w-14 h-14 rounded-xl flex items-center justify-center bg-emerald-100 text-emerald-600">
-            <FileText className="w-7 h-7" />
+          <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+            <FileText className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-sm font-medium text-slate-500">Total Simulasi Wawancara</p>
-            <p className="text-3xl font-bold text-slate-900">{totalSimulations}</p>
+            <p className="text-sm text-slate-500 font-medium">Total Simulasi Wawancara</p>
+            <p className="text-2xl font-bold text-slate-900">{totalSimulations}</p>
           </div>
         </div>
+
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-          <div className="w-14 h-14 rounded-xl flex items-center justify-center bg-amber-100 text-amber-600">
-            <BarChart2 className="w-7 h-7" />
+          <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+            <BarChart2 className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-sm font-medium text-slate-500">Rata-rata Skor Keseluruhan</p>
-            <p className="text-3xl font-bold text-slate-900">
+            <p className="text-sm text-slate-500 font-medium">Rata-rata Skor Kelas</p>
+            <p className="text-2xl font-bold text-slate-900">
               {activeStudents.length > 0 
                 ? Math.round(activeStudents.reduce((acc, s) => acc + s.averageScore, 0) / activeStudents.length)
                 : '-'}
@@ -155,8 +168,21 @@ export default function LecturerDashboard() {
 
       {/* Students Table */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-slate-200">
+        <div className="p-6 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <h2 className="text-lg font-bold text-slate-900">Daftar Mahasiswa & Progres</h2>
+          <div className="relative max-w-sm w-full">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Cari nama atau email mahasiswa..."
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+            />
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -172,14 +198,14 @@ export default function LecturerDashboard() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {students.length === 0 ? (
+              {paginatedStudents.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-slate-500">
-                    Belum ada data mahasiswa.
+                  <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
+                    Tidak ada mahasiswa yang ditemukan.
                   </td>
                 </tr>
               ) : (
-                students.map((student, i) => (
+                paginatedStudents.map((student, i) => (
                   <motion.tr 
                     key={student.id}
                     initial={{ opacity: 0, y: 10 }}
@@ -233,6 +259,34 @@ export default function LecturerDashboard() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Pagination Bar */}
+        <div className="p-4 border-t border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-sm text-slate-600">
+          <div>
+            Menampilkan <span className="font-semibold text-slate-900">{filteredStudents.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1}</span> - <span className="font-semibold text-slate-900">{Math.min(currentPage * itemsPerPage, filteredStudents.length)}</span> dari <span className="font-semibold text-slate-900">{filteredStudents.length}</span> mahasiswa
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="p-2 border border-slate-200 rounded-xl bg-white hover:bg-slate-100 disabled:opacity-40 disabled:hover:bg-white transition-colors"
+              title="Halaman Sebelumnya"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <span className="px-3 py-1 font-medium bg-indigo-50 text-indigo-700 rounded-lg">
+              {currentPage} / {totalPages}
+            </span>
+            <button
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="p-2 border border-slate-200 rounded-xl bg-white hover:bg-slate-100 disabled:opacity-40 disabled:hover:bg-white transition-colors"
+              title="Halaman Berikutnya"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
     </div>
