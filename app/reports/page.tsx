@@ -15,7 +15,7 @@ export default function ReportsPage() {
     return (
         <div className="container mx-auto px-4 py-8 md:py-12 max-w-6xl">
             <div className="mb-8">
-                <h1 className="text-2xl md:text-3xl font-display font-bold text-slate-900">10 Output Laporan</h1>
+                <h1 className="text-2xl md:text-3xl font-display font-bold text-slate-900">{visibleReports.length} Laporan</h1>
                 <p className="text-slate-500 mt-1">Pilih jenis laporan yang ingin ditampilkan atau dicetak (PDF/Excel).</p>
             </div>
 

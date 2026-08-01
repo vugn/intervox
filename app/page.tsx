@@ -1,8 +1,34 @@
+'use client';
+
 import Link from 'next/link';
 import { ArrowRight, Mic, Brain, FileText, BarChart3, CheckCircle, Star, Zap } from 'lucide-react';
 import * as motion from 'motion/react-client';
+import { useAuth } from '@/hooks/use-auth';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 export default function Home() {
+  const { user, userData, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && user) {
+      if (userData?.accountStatus === 'pending') {
+        router.replace('/pending');
+      } else {
+        router.replace('/dashboard');
+      }
+    }
+  }, [user, userData, loading, router]);
+
+  if (loading || user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col min-h-screen">
       {/* Hero Section */}
