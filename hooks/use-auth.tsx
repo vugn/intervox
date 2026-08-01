@@ -35,6 +35,37 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Check URL search params for mockAuth or mockRole
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const mockRoleParam = params.get('mockRole');
+      const isMockAuth = params.get('mockAuth') === '1' || Boolean(mockRoleParam);
+      if (isMockAuth) {
+        const role = mockRoleParam || 'administrator';
+        const nameMap: Record<string, string> = {
+          student: 'Budi Santoso (Mock Student)',
+          lecturer: 'Dr. Ahmad Sutanto, M.Kom.',
+          administrator: 'Administrator Intervox',
+          dean: 'Prof. Dr. H. Hendra Kurniawan',
+        };
+        const mockUser = {
+          id: 'mock-user-id-' + role,
+          email: `${role}@intervox.id`,
+          user_metadata: { full_name: nameMap[role] || 'Mock User' },
+        } as any;
+        setUser(mockUser);
+        setUserData({
+          uid: mockUser.id,
+          email: mockUser.email,
+          fullName: nameMap[role] || 'Mock User',
+          role: role,
+          accountStatus: 'approved',
+        });
+        setLoading(false);
+        return;
+      }
+    }
+
     // Get initial session
     const initAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();

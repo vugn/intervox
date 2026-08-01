@@ -4,28 +4,38 @@ import { chromium } from "playwright";
 
 const baseUrl = process.env.CAPTURE_BASE_URL || "http://localhost:3000";
 const outputDir = path.resolve(process.cwd(), "report-pdfs");
-const waitMs = Number(process.env.CAPTURE_WAIT_MS || 1200);
+const waitMs = Number(process.env.CAPTURE_WAIT_MS || 1500);
 
 const reportRoutes = [
-  { name: "01-transcript", path: "/reports/transcript" },
-  { name: "02-score-evaluation", path: "/reports/score-evaluation" },
-  { name: "03-strength-weakness", path: "/reports/strength-weakness" },
-  { name: "04-answer-comparison", path: "/reports/answer-comparison" },
-  { name: "05-progress-chart", path: "/reports/progress-chart" },
-  {
-    name: "06-development-recommendation",
-    path: "/reports/development-recommendation",
-  },
-  { name: "07-active-participants", path: "/reports/active-participants" },
-  { name: "08-module-statistics", path: "/reports/module-statistics" },
-  { name: "09-difficulty-analysis", path: "/reports/difficulty-analysis" },
-  { name: "10-certificate", path: "/reports/certificate", landscape: true },
+  // Student reports
+  { name: "01-transcript", path: "/reports/transcript", role: "student" },
+  { name: "02-score-evaluation", path: "/reports/score-evaluation", role: "student" },
+  { name: "03-strength-weakness", path: "/reports/strength-weakness", role: "student" },
+  { name: "04-answer-comparison", path: "/reports/answer-comparison", role: "student" },
+  { name: "05-progress-chart", path: "/reports/progress-chart", role: "student" },
+  { name: "06-development-recommendation", path: "/reports/development-recommendation", role: "student" },
+  { name: "10-certificate", path: "/reports/certificate", role: "student", landscape: true },
+
+  // Admin reports
+  { name: "07-active-participants", path: "/reports/active-participants", role: "administrator" },
+  { name: "08-module-statistics", path: "/reports/module-statistics", role: "administrator" },
+  { name: "09-difficulty-analysis", path: "/reports/difficulty-analysis", role: "administrator" },
+  { name: "11-system-stats", path: "/reports/system-stats", role: "administrator" },
+  { name: "12-user-feedback", path: "/reports/user-feedback", role: "administrator" },
+
+  // Lecturer reports
+  { name: "13-question-bank-usage", path: "/reports/question-bank-usage", role: "lecturer" },
+  { name: "14-student-competency-summary", path: "/reports/student-competency-summary", role: "lecturer" },
+  { name: "15-class-error-analysis", path: "/reports/class-error-analysis", role: "lecturer" },
+  { name: "16-question-difficulty-evaluation", path: "/reports/question-difficulty-evaluation", role: "lecturer" },
+  { name: "17-student-practice-attendance", path: "/reports/student-practice-attendance", role: "lecturer" },
+  { name: "18-lecturer-mentoring-summary", path: "/reports/lecturer-mentoring-summary", role: "lecturer" },
 ];
 
-function withMockAuth(routePath) {
+function withMockRole(routePath, role = "administrator") {
   return routePath.includes("?")
-    ? `${routePath}&mockAuth=1`
-    : `${routePath}?mockAuth=1`;
+    ? `${routePath}&mockRole=${role}`
+    : `${routePath}?mockRole=${role}`;
 }
 
 async function ensureServerReady() {
@@ -70,7 +80,7 @@ async function exportPdfs() {
   const page = await context.newPage();
 
   for (const report of reportRoutes) {
-    const url = `${baseUrl}${withMockAuth(report.path)}`;
+    const url = `${baseUrl}${withMockRole(report.path, report.role)}`;
     const outputPath = path.join(outputDir, `${report.name}.pdf`);
 
     try {
@@ -98,7 +108,7 @@ async function exportPdfs() {
   }
 
   await browser.close();
-  console.log(`Done. Report PDFs saved in: ${outputDir}`);
+  console.log(`\nDone. All 18 Report PDFs saved in: ${outputDir}`);
 }
 
 exportPdfs().catch((error) => {
