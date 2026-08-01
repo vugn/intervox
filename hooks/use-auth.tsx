@@ -196,15 +196,33 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const logout = async () => {
+    // 1. Immediately update UI state so it responds instantly
+    setUser(null);
+    setUserData(null);
+    setLoading(false);
+
+    // 2. Clear supabase auth session with a timeout so it never hangs
     try {
-      await supabase.auth.signOut();
+      await Promise.race([
+        supabase.auth.signOut(),
+        new Promise((resolve) => setTimeout(resolve, 1500)),
+      ]);
     } catch (e) {
       console.error('Error signing out', e);
     }
-    setUser(null);
-    setUserData(null);
+
+    // 3. Explicitly remove supabase tokens from localStorage
     if (typeof window !== 'undefined') {
-      window.location.href = '/';
+      try {
+        for (const key of Object.keys(localStorage)) {
+          if (key.startsWith('sb-') && key.endsWith('-auth-token')) {
+            localStorage.removeItem(key);
+          }
+        }
+      } catch (e) {
+        console.error('Failed to clear local storage', e);
+      }
+      window.location.replace('/');
     }
   };
 

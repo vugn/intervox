@@ -5,11 +5,14 @@ import { usePathname } from 'next/navigation';
 import { Mic, LogOut, Menu, X, User } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 
 export default function Header() {
   const { user, userData, logout } = useAuth();
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const baseLinks = [
     { href: '/dashboard', label: 'Dashboard' },
@@ -72,7 +75,7 @@ export default function Header() {
                 )}
                 <span className="text-sm font-medium text-slate-700">{user.user_metadata?.full_name || user.email?.split('@')[0]}</span>
               </Link>
-              <button onClick={logout} className="text-slate-400 hover:text-red-500 transition-colors p-1 rounded-lg" title="Keluar">
+              <button onClick={() => setShowLogoutModal(true)} className="text-slate-400 hover:text-red-500 transition-colors p-1 rounded-lg" title="Keluar">
                 <LogOut className="w-4 h-4" />
               </button>
             </div>
@@ -123,7 +126,7 @@ export default function Header() {
                     )}
                     <span className="text-sm font-medium text-slate-700 max-w-[160px] truncate">{user.user_metadata?.full_name || user.email}</span>
                   </div>
-                  <button onClick={() => { logout(); setMobileOpen(false); }} className="text-slate-400 hover:text-red-500 transition-colors text-xs flex items-center gap-1">
+                  <button onClick={() => { setShowLogoutModal(true); setMobileOpen(false); }} className="text-slate-400 hover:text-red-500 transition-colors text-xs flex items-center gap-1">
                     <LogOut className="w-4 h-4" />
                   </button>
                 </div>
@@ -144,6 +147,50 @@ export default function Header() {
             </div>
           </nav>
         </div>
+      )}
+
+      {/* Logout Confirmation Modal rendered via Portal so it centers on the full window */}
+      {showLogoutModal && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 transform transition-all">
+            <div className="w-12 h-12 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center mb-4 mx-auto">
+              <LogOut className="w-6 h-6" />
+            </div>
+            <h3 className="text-lg font-bold text-slate-900 text-center mb-2">Konfirmasi Keluar</h3>
+            <p className="text-sm text-slate-500 text-center mb-6 leading-relaxed">
+              Apakah Anda yakin ingin keluar dari akun Intervox? Anda perlu masuk kembali untuk melanjutkan aktivitas Anda.
+            </p>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setShowLogoutModal(false)}
+                disabled={isLoggingOut}
+                className="flex-1 py-2.5 px-4 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50 cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  setIsLoggingOut(true);
+                  await logout();
+                }}
+                disabled={isLoggingOut}
+                className="flex-1 py-2.5 px-4 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-70 flex items-center justify-center gap-2 cursor-pointer"
+              >
+                {isLoggingOut ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Keluar...
+                  </>
+                ) : (
+                  'Ya, Keluar'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </header>
   );
