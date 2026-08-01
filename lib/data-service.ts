@@ -106,15 +106,16 @@ export async function upsertUser(uid: string, data: Record<string, unknown>) {
   // 1. Upsert user record
   const { data: existing } = await supabase
     .from("users")
-    .select("id")
+    .select("id, account_status")
     .eq("auth_id", uid)
     .maybeSingle();
 
-  const userPayload = {
+  const userPayload: Record<string, any> = {
     auth_id: uid,
     email: data.email as string,
     full_name: (data.displayName ?? data.fullName ?? "") as string,
     role: (data.role ?? "student") as string,
+    account_status: (existing as any)?.account_status || data.accountStatus || "pending",
     phone: data.phone as string | undefined,
     department: data.department as string | undefined,
     faculty: data.faculty as string | undefined,
@@ -208,7 +209,7 @@ export async function listAllUsers() {
     email: u.email,
     fullName: u.full_name,
     role: u.role,
-    accountStatus: u.account_status,
+    accountStatus: u.account_status || 'pending',
     createdAt: u.created_at,
   }));
 }
