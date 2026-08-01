@@ -108,9 +108,12 @@ export default function LecturerDashboard() {
           <h1 className="text-2xl md:text-3xl font-display font-bold text-slate-900">Dashboard Dosen Pembimbing</h1>
           <p className="text-slate-500 mt-1 text-sm">Pantau aktivitas dan progres wawancara mahasiswa didik Anda.</p>
         </div>
-        <div className="flex gap-2">
-           <Link href="/reports/active-participants" className="bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors flex items-center gap-2">
-             <FileSpreadsheet className="w-4 h-4" /> Laporan Rekap
+        <div className="flex flex-wrap gap-2">
+           <Link href="/lecturer/questions" className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors flex items-center gap-2 shadow-sm">
+             <FileText className="w-4 h-4" /> Kelola Bank Soal
+           </Link>
+           <Link href="/reports" className="bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors flex items-center gap-2">
+             <FileSpreadsheet className="w-4 h-4" /> Laporan Dosen
            </Link>
         </div>
       </div>

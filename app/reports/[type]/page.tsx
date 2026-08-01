@@ -58,8 +58,12 @@ export default function ReportDetailPage() {
             setLoading(true);
             setError('');
             try {
-                const isAdminReport = ['active-participants', 'module-statistics', 'difficulty-analysis'].includes(type);
-                const sessionsRaw: any[] = isAdminReport
+                const isAggregatedReport = [
+                    'active-participants', 'module-statistics', 'difficulty-analysis', 'system-stats', 'user-feedback',
+                    'question-bank-usage', 'student-competency-summary', 'class-error-analysis',
+                    'question-difficulty-evaluation', 'student-practice-attendance', 'lecturer-mentoring-summary'
+                ].includes(type);
+                const sessionsRaw: any[] = isAggregatedReport
                     ? await listAllSessions()
                     : (user ? await listSessionsByUser(user.id) : []);
 
@@ -297,6 +301,153 @@ export default function ReportDetailPage() {
                             Predikat: predicate,
                             'Tanggal Terbit': formatDate(top.completedAt || top.createdAt),
                         }] : [];
+                        break;
+                    }
+                    case 'question-bank-usage': {
+                        const map = new Map<string, { count: number; totalScore: number; scored: number }>();
+                        sessions.forEach((session: any) => {
+                            const key = String(session.jobRole || session.moduleType || 'Umum');
+                            const current = map.get(key) || { count: 0, totalScore: 0, scored: 0 };
+                            current.count += 1;
+                            const score = getSessionScore(session);
+                            if (score > 0) {
+                                current.totalScore += score;
+                                current.scored += 1;
+                            }
+                            map.set(key, current);
+                        });
+                        dynamicRows = Array.from(map.entries()).map(([kategori, val]) => {
+                            const avg = val.scored ? Math.round(val.totalScore / val.scored) : 0;
+                            return {
+                                'Kategori / Bidang': kategori,
+                                'Total Penggunaan': val.count,
+                                'Rata-rata Skor': avg,
+                                'Status Pemakaian': val.count >= 10 ? 'Tinggi' : val.count >= 5 ? 'Sedang' : 'Normal',
+                            };
+                        });
+                        break;
+                    }
+                    case 'student-competency-summary': {
+                        const map = new Map<string, { count: number; totalScore: number; scored: number }>();
+                        sessions.forEach((session: any) => {
+                            const name = String(session.candidateName || 'Mahasiswa');
+                            const current = map.get(name) || { count: 0, totalScore: 0, scored: 0 };
+                            current.count += 1;
+                            const score = getSessionScore(session);
+                            if (score > 0) {
+                                current.totalScore += score;
+                                current.scored += 1;
+                            }
+                            map.set(name, current);
+                        });
+                        dynamicRows = Array.from(map.entries()).map(([nama, val]) => {
+                            const avg = val.scored ? Math.round(val.totalScore / val.scored) : 0;
+                            const pred = avg >= 85 ? 'Sangat Baik' : avg >= 75 ? 'Baik' : 'Perlu Peningkatan';
+                            return {
+                                'Nama Mahasiswa': nama,
+                                'Total Sesi Latihan': val.count,
+                                'Rata-rata Nilai Akhir': avg,
+                                'Capaian Kompetensi': pred,
+                            };
+                        });
+                        break;
+                    }
+                    case 'class-error-analysis': {
+                        let totalLow = 0;
+                        const weaknessMap = new Map<string, number>();
+                        sessions.forEach((session: any) => {
+                            const score = getSessionScore(session);
+                            if (score > 0 && score < 75) {
+                                totalLow++;
+                                const item = 'Struktur STAR & Ketajaman Jawaban';
+                                weaknessMap.set(item, (weaknessMap.get(item) || 0) + 1);
+                            }
+                            if (session.analysis?.scores) {
+                                const sc = session.analysis.scores;
+                                if (sc.communication && Number(sc.communication) < 75) {
+                                    weaknessMap.set('Artikulasi & Kejelasan Komunikasi', (weaknessMap.get('Artikulasi & Kejelasan Komunikasi') || 0) + 1);
+                                }
+                                if (sc.technical && Number(sc.technical) < 75) {
+                                    weaknessMap.set('Kedalaman Solusi & Kompetensi Teknis', (weaknessMap.get('Kedalaman Solusi & Kompetensi Teknis') || 0) + 1);
+                                }
+                            }
+                        });
+                        dynamicRows = Array.from(weaknessMap.entries()).map(([kriteria, count]) => ({
+                            'Indikator / Kriteria': kriteria,
+                            'Sesi Skor Di Bawah Standar': count,
+                            'Persentase Kelemahan (%)': sessions.length ? Math.round((count / sessions.length) * 100) : 0,
+                            'Rekomendasi Dosen': 'Perbanyak latihan studi kasus & struktur presentasi',
+                        }));
+                        break;
+                    }
+                    case 'question-difficulty-evaluation': {
+                        const map = new Map<string, { total: number; totalScore: number; scored: number }>();
+                        sessions.forEach((session: any) => {
+                            const diff = String(session.difficulty || 'Medium');
+                            const label = diff.toLowerCase() === 'easy' ? 'Mudah (Easy)' : diff.toLowerCase() === 'hard' ? 'Sulit (Hard)' : 'Sedang (Medium)';
+                            const current = map.get(label) || { total: 0, totalScore: 0, scored: 0 };
+                            current.total += 1;
+                            const score = getSessionScore(session);
+                            if (score > 0) {
+                                current.totalScore += score;
+                                current.scored += 1;
+                            }
+                            map.set(label, current);
+                        });
+                        dynamicRows = Array.from(map.entries()).map(([level, val]) => {
+                            const avg = val.scored ? Math.round(val.totalScore / val.scored) : 0;
+                            return {
+                                'Tingkat Kesulitan': level,
+                                'Total Sesi Dijawab': val.total,
+                                'Rata-rata Skor Mahasiswa': avg,
+                                'Status Evaluasi': avg >= 70 ? 'Soal Efektif' : 'Perlu Pembahasan Kelas',
+                            };
+                        });
+                        break;
+                    }
+                    case 'student-practice-attendance': {
+                        const map = new Map<string, { total: number; lastDate: Date }>();
+                        sessions.forEach((session: any) => {
+                            const name = String(session.candidateName || 'Mahasiswa');
+                            const current = map.get(name) || { total: 0, lastDate: new Date(0) };
+                            current.total += 1;
+                            const d = new Date(String(session.completedAt || session.createdAt || 0));
+                            if (!Number.isNaN(d.getTime()) && d > current.lastDate) {
+                                current.lastDate = d;
+                            }
+                            map.set(name, current);
+                        });
+                        dynamicRows = Array.from(map.entries()).map(([nama, val]) => ({
+                            'Mahasiswa': nama,
+                            'Total Sesi Selesai': val.total,
+                            'Sesi Terakhir': val.lastDate.getTime() > 0 ? formatDate(val.lastDate.toISOString()) : '-',
+                            'Status Keaktifan': val.total >= 3 ? 'Aktif Berlatih' : 'Perlu Dorongan Latihan',
+                        }));
+                        break;
+                    }
+                    case 'lecturer-mentoring-summary': {
+                        const map = new Map<string, { count: number; totalScore: number; scored: number; job: string }>();
+                        sessions.forEach((session: any) => {
+                            const name = String(session.candidateName || 'Mahasiswa');
+                            const current = map.get(name) || { count: 0, totalScore: 0, scored: 0, job: String(session.jobRole || 'Teknik Informatika') };
+                            current.count += 1;
+                            const score = getSessionScore(session);
+                            if (score > 0) {
+                                current.totalScore += score;
+                                current.scored += 1;
+                            }
+                            map.set(name, current);
+                        });
+                        dynamicRows = Array.from(map.entries()).map(([nama, val]) => {
+                            const avg = val.scored ? Math.round(val.totalScore / val.scored) : 0;
+                            return {
+                                'Nama Mahasiswa': nama,
+                                'Program Studi': val.job,
+                                'Jumlah Sesi Bimbingan AI': val.count,
+                                'Nilai Evaluasi Akhir': avg,
+                                'Status Rekomendasi': avg >= 75 ? 'Siap Kerja / Kompeten' : 'Perlu Bimbingan Tambahan',
+                            };
+                        });
                         break;
                     }
                     default:

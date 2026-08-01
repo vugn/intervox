@@ -32,6 +32,7 @@ export default function Header() {
   } else if (userData?.role === 'lecturer') {
     navLinks = [
         { href: '/lecturer', label: 'Dashboard Dosen' },
+        { href: '/lecturer/questions', label: 'Bank Soal' },
         { href: '/reports', label: 'Laporan' },
         { href: '/profile', label: 'Profil' },
     ];

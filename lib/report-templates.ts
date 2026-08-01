@@ -5,6 +5,8 @@ export type ReportItem = {
   type: string;
   exportTypes: Array<"PDF" | "Excel">;
   adminOnly?: boolean;
+  lecturerOnly?: boolean;
+  studentOnly?: boolean;
   requireSignature?: boolean;
 };
 
@@ -15,6 +17,7 @@ export const REPORT_ITEMS: ReportItem[] = [
     description: "Dokumen log percakapan lengkap sesi interview.",
     type: "transcript",
     exportTypes: ["PDF", "Excel"],
+    studentOnly: true,
     requireSignature: true,
   },
   {
@@ -31,6 +34,7 @@ export const REPORT_ITEMS: ReportItem[] = [
     description: "Rincian kekuatan dan area perbaikan jawaban.",
     type: "strength-weakness",
     exportTypes: ["PDF", "Excel"],
+    studentOnly: true,
     requireSignature: true,
   },
   {
@@ -39,6 +43,7 @@ export const REPORT_ITEMS: ReportItem[] = [
     description: "Tabel jawaban user versus jawaban ideal.",
     type: "answer-comparison",
     exportTypes: ["PDF", "Excel"],
+    studentOnly: true,
     requireSignature: true,
   },
   {
@@ -47,6 +52,7 @@ export const REPORT_ITEMS: ReportItem[] = [
     description: "Tren skor latihan dari waktu ke waktu.",
     type: "progress-chart",
     exportTypes: ["PDF", "Excel"],
+    studentOnly: true,
     requireSignature: true,
   },
   {
@@ -55,6 +61,7 @@ export const REPORT_ITEMS: ReportItem[] = [
     description: "Saran belajar dan latihan yang dipersonalisasi AI.",
     type: "development-recommendation",
     exportTypes: ["PDF", "Excel"],
+    studentOnly: true,
     requireSignature: true,
   },
   {
@@ -90,6 +97,7 @@ export const REPORT_ITEMS: ReportItem[] = [
     description: "Bukti menyelesaikan sesi latihan interview.",
     type: "certificate",
     exportTypes: ["PDF"],
+    studentOnly: true,
     requireSignature: false,
   },
   {
@@ -108,6 +116,60 @@ export const REPORT_ITEMS: ReportItem[] = [
     type: "user-feedback",
     exportTypes: ["PDF", "Excel"],
     adminOnly: true,
+    requireSignature: true,
+  },
+  {
+    id: "r13",
+    title: "Laporan Penggunaan Bank Soal & Modul",
+    description: "Rekap frekuensi penggunaan setiap butir bank soal oleh mahasiswa pada sesi latihan.",
+    type: "question-bank-usage",
+    exportTypes: ["PDF", "Excel"],
+    lecturerOnly: true,
+    requireSignature: true,
+  },
+  {
+    id: "r14",
+    title: "Laporan Akumulasi Kompetensi Mahasiswa",
+    description: "Rekap rata-rata skor latihan mahasiswa berdasarkan kategori modul wawancara.",
+    type: "student-competency-summary",
+    exportTypes: ["PDF", "Excel"],
+    lecturerOnly: true,
+    requireSignature: true,
+  },
+  {
+    id: "r15",
+    title: "Laporan Analisis Kesalahan & Area Perbaikan Kelas",
+    description: "Rangkuman indikator kriteria yang paling sering mendapat skor rendah oleh mahasiswa.",
+    type: "class-error-analysis",
+    exportTypes: ["PDF", "Excel"],
+    lecturerOnly: true,
+    requireSignature: true,
+  },
+  {
+    id: "r16",
+    title: "Laporan Evaluasi Kesulitan Soal",
+    description: "Statistik sebaran nilai mahasiswa pada soal tingkat Mudah, Sedang, dan Sulit.",
+    type: "question-difficulty-evaluation",
+    exportTypes: ["PDF", "Excel"],
+    lecturerOnly: true,
+    requireSignature: true,
+  },
+  {
+    id: "r17",
+    title: "Laporan Keaktifan & Frekuensi Latihan Mahasiswa",
+    description: "Log aktivitas sesi wawancara mahasiswa dan intensitas latihan dari waktu ke waktu.",
+    type: "student-practice-attendance",
+    exportTypes: ["PDF", "Excel"],
+    lecturerOnly: true,
+    requireSignature: true,
+  },
+  {
+    id: "r18",
+    title: "Laporan Rekapitulasi Bimbingan Dosen",
+    description: "Laporan resmi kemajuan dan hasil pembimbingan wawancara kerja mahasiswa didik.",
+    type: "lecturer-mentoring-summary",
+    exportTypes: ["PDF", "Excel"],
+    lecturerOnly: true,
     requireSignature: true,
   },
 ];
@@ -169,5 +231,30 @@ export const SAMPLE_ROWS: Record<
       Nilai: 84,
       Tanggal: "2026-03-13",
     },
+  ],
+  "question-bank-usage": [
+    { "Kategori / Bidang": "Rekayasa Perangkat Lunak", "Total Penggunaan": 45, "Rata-rata Skor": 82, "Status Pemakaian": "Tinggi" },
+    { "Kategori / Bidang": "Jaringan & Keamanan", "Total Penggunaan": 28, "Rata-rata Skor": 75, "Status Pemakaian": "Sedang" },
+  ],
+  "student-competency-summary": [
+    { "Nama Mahasiswa": "Budi Santoso", "Total Sesi Latihan": 14, "Rata-rata Nilai Akhir": 86, "Capaian Kompetensi": "Sangat Baik" },
+    { "Nama Mahasiswa": "Sari Wulandari", "Total Sesi Latihan": 10, "Rata-rata Nilai Akhir": 79, "Capaian Kompetensi": "Baik" },
+  ],
+  "class-error-analysis": [
+    { "Indikator / Kriteria": "Penyampaian Contoh Nyata (STAR)", "Sesi Skor Di Bawah Standar": 18, "Persentase Kelemahan (%)": 42, "Rekomendasi Dosen": "Latihan teknik penataan jawaban struktural" },
+    { "Indikator / Kriteria": "Kedalaman Solusi Teknis", "Sesi Skor Di Bawah Standar": 12, "Persentase Kelemahan (%)": 28, "Rekomendasi Dosen": "Eksplorasi arsitektur sistem dasar" },
+  ],
+  "question-difficulty-evaluation": [
+    { "Tingkat Kesulitan": "Mudah (Easy)", "Total Sesi Dijawab": 62, "Rata-rata Skor Mahasiswa": 88, "Status Evaluasi": "Soal Efektif" },
+    { "Tingkat Kesulitan": "Sedang (Medium)", "Total Sesi Dijawab": 54, "Rata-rata Skor Mahasiswa": 78, "Status Evaluasi": "Soal Efektif" },
+    { "Tingkat Kesulitan": "Sulit (Hard)", "Total Sesi Dijawab": 30, "Rata-rata Skor Mahasiswa": 66, "Status Evaluasi": "Perlu Pembahasan Kelas" },
+  ],
+  "student-practice-attendance": [
+    { "Mahasiswa": "Budi Santoso", "Total Sesi Selesai": 14, "Sesi Terakhir": "2026-07-28", "Status Keaktifan": "Aktif Berlatih" },
+    { "Mahasiswa": "Sari Wulandari", "Total Sesi Selesai": 10, "Sesi Terakhir": "2026-07-29", "Status Keaktifan": "Aktif Berlatih" },
+  ],
+  "lecturer-mentoring-summary": [
+    { "Nama Mahasiswa": "Budi Santoso", "Program Studi": "Teknik Informatika", "Jumlah Sesi Bimbingan AI": 14, "Nilai Evaluasi Akhir": 86, "Status Rekomendasi": "Siap Kerja / Kompeten" },
+    { "Nama Mahasiswa": "Sari Wulandari", "Program Studi": "Sistem Informasi", "Jumlah Sesi Bimbingan AI": 10, "Nilai Evaluasi Akhir": 79, "Status Rekomendasi": "Siap Kerja / Kompeten" },
   ],
 };
