@@ -397,14 +397,27 @@ export default function SeedPage() {
                     </div>
                 )}
 
+                <div className="mb-6 p-4 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600 space-y-1">
+                    <p className="font-bold text-slate-800">📌 Migrasi 35 Data Mockup Real Indonesia (Presentasi Skripsi):</p>
+                    <p>
+                        File migrasi SQL resmi yang <strong>menghapus data selain tabel users</strong> dan memasukkan <strong>35 data user real, 35 profil mahasiswa, 9 kategori, 36 bank soal, 35 sesi wawancara, transkrip, serta analisis skor nyata</strong> tersedia di:
+                    </p>
+                    <code className="block bg-white p-2 border border-slate-200 rounded font-mono text-indigo-700 font-semibold my-1">
+                        supabase/migrations/20260801150000_seed_35_real_mockup_data.sql
+                    </code>
+                    <p>
+                        Jalankan file migrasi tersebut di Supabase SQL Editor atau lewat <code className="bg-slate-200 px-1 rounded">npm run seed:mockup</code> untuk mengisi data nyata presentasi.
+                    </p>
+                </div>
+
                 <div className="flex flex-col sm:flex-row gap-3">
                     <button
                         onClick={handleSeed}
                         disabled={status === 'seeding' || status === 'done'}
-                        className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                        className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer shadow-sm"
                     >
                         {status === 'seeding' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
-                        {status === 'seeding' ? 'Seeding...' : status === 'done' ? 'Selesai!' : 'Tambahkan Data Contoh'}
+                        {status === 'seeding' ? 'Seeding...' : status === 'done' ? 'Selesai!' : 'Seed 35 Data Mockup Real (Presentasi Skripsi)'}
                     </button>
                     {status === 'done' && (
                         <Link

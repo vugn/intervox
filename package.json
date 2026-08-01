@@ -12,7 +12,8 @@
     "capture:wireframes": "node scripts/capture-wireframes.mjs",
     "capture:wireframes:auto": "NEXT_PUBLIC_WIREFRAME_MODE=true NEXT_PUBLIC_CAPTURE_MODE=true start-server-and-test dev http://localhost:3000 capture:wireframes",
     "export:reports:pdf": "node scripts/export-report-pdfs.mjs",
-    "export:reports:pdf:auto": "NEXT_PUBLIC_CAPTURE_MODE=true start-server-and-test dev http://localhost:3000 export:reports:pdf"
+    "export:reports:pdf:auto": "NEXT_PUBLIC_CAPTURE_MODE=true start-server-and-test dev http://localhost:3000 export:reports:pdf",
+    "seed:mockup": "node scripts/seed-35-real-mockup-data.mjs"
   },
   "dependencies": {
     "@google/genai": "^1.17.0",

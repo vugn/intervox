@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { REPORT_ITEMS, SAMPLE_ROWS } from '@/lib/report-templates';
+import { REPORT_ITEMS } from '@/lib/report-templates';
 import { ArrowLeft, Download, FileSpreadsheet } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { getAnalysisBySession, getConversationBySession, getRecommendationsBySession, getSessionById, listAllSessions, listQuestionsByCategory, listSessionsByUser, getSystemSettings } from '@/lib/data-service';
@@ -454,8 +454,7 @@ export default function ReportDetailPage() {
                         dynamicRows = [];
                 }
 
-                const allowSampleFallback = !isSessionBasedReport;
-                setRows(dynamicRows.length ? dynamicRows : (allowSampleFallback ? (SAMPLE_ROWS[type] || []) : []));
+                setRows(dynamicRows);
 
                 if (report?.requireSignature) {
                     const settings = await getSystemSettings('head_of_program_signature');
@@ -464,7 +463,7 @@ export default function ReportDetailPage() {
 
             } catch (err: any) {
                 setError(err?.message || 'Gagal memuat data laporan dari backend.');
-                setRows(SAMPLE_ROWS[type] || []);
+                setRows([]);
             } finally {
                 setLoading(false);
             }
