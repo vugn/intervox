@@ -2,33 +2,48 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
+import { useWireframe } from '@/app/client-layout';
 import { listUserFeedbacks, getSystemSettings } from '@/lib/data-service';
 import Link from 'next/link';
 import { ArrowLeft, MessageSquare, Star, User, Download } from 'lucide-react';
 import * as motion from 'motion/react-client';
 import ReportTemplate from '@/components/report-template';
 
+const DEMO_FEEDBACKS = [
+  { id: 'f1', rating: 5, comments: 'Platform ini sangat membantu latihan interview saya! AI-nya terasa seperti interviewer nyata. Saya jadi lebih percaya diri.', submitted_at: '2026-08-05T10:30:00Z', users: { full_name: 'Gus Tiran', email: 'gustiranda3014@gmail.com' } },
+  { id: 'f2', rating: 4, comments: 'Fitur transkripnya bagus sekali. Bisa review jawaban saya setelah sesi selesai. Minta tambah fitur rekap mingguan.', submitted_at: '2026-08-04T14:15:00Z', users: { full_name: 'Dimas Pratama', email: 'dimas.pratama@student.uniska.ac.id' } },
+  { id: 'f3', rating: 5, comments: 'Rekomendasi pengembangan dari AI sangat spesifik dan actionable. Berbeda dengan feedback umum yang biasanya saya dapat.', submitted_at: '2026-08-03T09:00:00Z', users: { full_name: 'Andika Putra', email: 'andika.p@student.uniska.ac.id' } },
+  { id: 'f4', rating: 3, comments: 'Bagus tapi kadang respons AI sedikit lambat. Overall pengalaman latihan sangat positif.', submitted_at: '2026-08-01T16:45:00Z', users: { full_name: 'Rina Septiani', email: 'rina.s@student.uniska.ac.id' } },
+];
+
 export default function UserFeedbackReport() {
   const { user, userData, loading: authLoading } = useAuth();
+  const isWireframe = useWireframe();
   const [feedbacks, setFeedbacks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [headOfProgram, setHeadOfProgram] = useState<any>(null);
 
+  const allowedRoles = ['administrator', 'dean', 'head_of_program', 'lecturer'];
+
   useEffect(() => {
     const fetchFeedbacks = async () => {
       if (authLoading) return;
-      if (!user || (userData?.role !== 'administrator' && userData?.role !== 'head_of_program' && userData?.role !== 'lecturer')) {
+      if (!user || !allowedRoles.includes(userData?.role)) {
+        if (isWireframe) setFeedbacks(DEMO_FEEDBACKS.slice(0, 5));
         setLoading(false);
         return;
       }
 
       try {
-        const data = await listUserFeedbacks();
-        setFeedbacks(data);
+        let data = await listUserFeedbacks();
+        if (isWireframe && (!data || data.length === 0)) data = DEMO_FEEDBACKS;
+        if (isWireframe && data) data = data.slice(0, 5);
+        setFeedbacks(data || []);
         const settings = await getSystemSettings('head_of_program_signature');
         setHeadOfProgram(settings);
       } catch (error) {
         console.error("Error fetching feedbacks:", error);
+        if (isWireframe) setFeedbacks(DEMO_FEEDBACKS.slice(0, 5));
       } finally {
         setLoading(false);
       }
@@ -45,7 +60,7 @@ export default function UserFeedbackReport() {
     );
   }
 
-  if (!user || (userData?.role !== 'administrator' && userData?.role !== 'head_of_program' && userData?.role !== 'lecturer')) {
+  if (!isWireframe && (!user || !allowedRoles.includes(userData?.role))) {
     return (
       <div className="flex-1 flex items-center justify-center p-4">
         <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 text-center max-w-md w-full">
@@ -70,7 +85,7 @@ export default function UserFeedbackReport() {
       requireSignature={true}
       headOfProgram={headOfProgram}
     >
-      <div className="mb-6 flex items-center justify-between gap-4 print:hidden">
+      <div className="mb-6 flex items-center justify-between gap-4 print:hidden [.wf-mode_&]:hidden">
         <Link href="/reports" className="inline-flex items-center text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors">
           <ArrowLeft className="w-4 h-4 mr-1" />
           Kembali ke Daftar Laporan

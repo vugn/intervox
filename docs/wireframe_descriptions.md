@@ -60,56 +60,74 @@ Pada rancangan ini administrator dapat mengatur profil dan kredensial akunnya ag
 20. Rancangan Pengaturan Sistem (Administrator)
 Pada rancangan ini administrator dapat mengunggah dan memperbarui tanda tangan Dekan agar dokumen sertifikat dan laporan resmi dapat diterbitkan dengan sah.
 
-21. Rancangan Cetak Transkrip Sesi (Student)
+21. Rancangan Dashboard (Dean)
+Pada rancangan ini dean dapat melihat ringkasan eksekutif seluruh aktivitas sistem dan metrik partisipasi agar dapat mengambil keputusan strategis berbasis data.
+
+22. Rancangan Menu Laporan (Dean)
+Pada rancangan ini dean dapat mengakses laporan-laporan tingkat institusi yang diperlukan untuk pelaporan formal dan evaluasi program studi.
+
+23. Rancangan Profil (Dean)
+Pada rancangan ini dean dapat melihat dan mengatur data profil akunnya di dalam sistem.
+
+24. Rancangan Cetak Transkrip Sesi (Student)
 Pada rancangan ini sistem menampilkan dokumen rekaman transkrip percakapan utuh antara student dan AI agar pengguna dapat membaca ulang seluruh dialog latihan.
 
-22. Rancangan Cetak Evaluasi Skor (Student)
+25. Rancangan Cetak Evaluasi Skor (Student)
 Pada rancangan ini sistem menampilkan hasil penilaian kuantitatif dari latihan yang memuat detail poin agar student mengetahui seberapa baik jawabannya.
 
-23. Rancangan Cetak Kelebihan dan Kekurangan (Student)
+26. Rancangan Cetak Kelebihan dan Kekurangan (Student)
 Pada rancangan ini sistem menampilkan evaluasi kualitatif mengenai kekuatan dominan dan kelemahan spesifik agar student mengetahui aspek apa yang perlu diperbaiki.
 
-24. Rancangan Cetak Perbandingan Jawaban (Student)
+27. Rancangan Cetak Perbandingan Jawaban (Student)
 Pada rancangan ini sistem menampilkan komparasi poin-per-poin antara jawaban student melawan standar respons AI agar student mengetahui jawaban ideal yang diharapkan.
 
-25. Rancangan Cetak Grafik Perkembangan (Student)
+28. Rancangan Cetak Grafik Perkembangan (Student)
 Pada rancangan ini sistem menampilkan visualisasi grafik garis yang melacak perkembangan keterampilan agar student dapat melihat tren performanya dari waktu ke waktu.
 
-26. Rancangan Cetak Rekomendasi Pengembangan (Student)
+29. Rancangan Cetak Rekomendasi Pengembangan (Student)
 Pada rancangan ini sistem menampilkan rekomendasi tindak lanjut (actionable feedback) agar student memiliki panduan konkrit untuk pengembangan dirinya.
 
-27. Rancangan Cetak Sertifikat (Student)
+30. Rancangan Cetak Sertifikat (Student)
 Pada rancangan ini sistem menampilkan lembar sertifikat penghargaan berformat lanskap agar student memiliki bukti otentik telah menyelesaikan simulasi dengan baik.
 
-28. Rancangan Cetak Penggunaan Bank Soal (Lecturer)
+31. Rancangan Cetak Penggunaan Bank Soal (Lecturer)
 Pada rancangan ini sistem menampilkan statistik frekuensi kemunculan pertanyaan agar lecturer mengetahui soal mana yang paling sering digunakan oleh student.
 
-29. Rancangan Cetak Ringkasan Kompetensi (Lecturer)
+32. Rancangan Cetak Ringkasan Kompetensi (Lecturer)
 Pada rancangan ini sistem menampilkan agregasi kompetensi seluruh kelas agar lecturer bisa mengukur tingkat kemampuan rata-rata student-nya.
 
-30. Rancangan Cetak Analisis Kesalahan Kelas (Lecturer)
+33. Rancangan Cetak Analisis Kesalahan Kelas (Lecturer)
 Pada rancangan ini sistem menampilkan data titik kesalahan yang paling sering dilakukan agar lecturer dapat memberikan materi perbaikan yang tepat sasaran.
 
-31. Rancangan Cetak Evaluasi Tingkat Kesulitan (Lecturer)
+34. Rancangan Cetak Evaluasi Tingkat Kesulitan (Lecturer)
 Pada rancangan ini sistem menampilkan kalibrasi tingkat kesulitan soal berdasarkan skor rata-rata agar lecturer dapat menyesuaikan bobot pertanyaan.
 
-32. Rancangan Cetak Presensi Latihan (Lecturer)
+35. Rancangan Cetak Presensi Latihan (Lecturer)
 Pada rancangan ini sistem menampilkan rekapitulasi partisipasi student agar lecturer dapat memantau kedisiplinan student-nya dalam berlatih.
 
-33. Rancangan Cetak Ringkasan Pembimbingan (Lecturer)
+36. Rancangan Cetak Ringkasan Pembimbingan (Lecturer)
 Pada rancangan ini sistem menampilkan evaluasi akhir terkait kemajuan aktivitas pembimbingan agar lecturer memiliki arsip performa selama satu semester.
 
-34. Rancangan Cetak Partisipan Aktif (Administrator)
+37. Rancangan Cetak Partisipan Aktif (Administrator)
 Pada rancangan ini sistem menampilkan rekap bulanan jumlah student, lecturer, dan staf aktif agar administrator dapat menilai tingkat adopsi sistem.
 
-35. Rancangan Cetak Statistik Modul (Administrator)
+38. Rancangan Cetak Statistik Modul (Administrator)
 Pada rancangan ini sistem menampilkan statistik popularitas dan utilitas tiap kategori modul agar administrator dapat mengevaluasi minat pengguna terhadap topik tertentu.
 
-36. Rancangan Cetak Analisis Kesulitan Sistem (Administrator)
+39. Rancangan Cetak Analisis Kesulitan Sistem (Administrator)
 Pada rancangan ini sistem menampilkan metrik komprehensif terkait kesulitan soal di seluruh fakultas agar administrator memiliki gambaran kualitas bank soal secara global.
 
-37. Rancangan Cetak Statistik Sistem (Administrator)
+40. Rancangan Cetak Statistik Sistem (Administrator)
 Pada rancangan ini sistem menampilkan performa aplikasi dan konsumsi sistem agar administrator dapat melakukan optimasi server dan sumber daya.
 
-38. Rancangan Cetak Umpan Balik Pengguna (Administrator)
+41. Rancangan Cetak Umpan Balik Pengguna (Administrator)
 Pada rancangan ini sistem menampilkan ringkasan saran dan keluhan pengguna terhadap performa AI agar administrator dapat merencanakan peningkatan fitur Intervox ke depannya.
+
+42. Rancangan Cetak Partisipan Aktif (Dean)
+Pada rancangan ini sistem menampilkan rekap bulanan jumlah student, lecturer, dan staf aktif agar dean dapat menilai tingkat adopsi sistem.
+
+43. Rancangan Cetak Statistik Modul (Dean)
+Pada rancangan ini sistem menampilkan statistik popularitas dan utilitas tiap kategori modul agar dean dapat mengevaluasi minat pengguna terhadap topik tertentu.
+
+44. Rancangan Cetak Statistik Sistem (Dean)
+Pada rancangan ini sistem menampilkan performa aplikasi dan konsumsi sistem agar dean dapat memantau efektivitas penggunaan platform Intervox secara luas.

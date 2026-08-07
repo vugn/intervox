@@ -35,40 +35,41 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check URL search params for mockAuth or mockRole
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const mockRoleParam = params.get('mockRole');
-      const isMockAuth = params.get('mockAuth') === '1' || Boolean(mockRoleParam);
-      if (isMockAuth) {
-        const role = mockRoleParam || 'administrator';
+    const mockRoleParam =
+      typeof window !== 'undefined'
+        ? new URLSearchParams(window.location.search).get('mockRole')
+        : null;
+
+    // Get initial session — always do this regardless of mockRole
+    const initAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (mockRoleParam) {
+        // Override role/name in userData, but keep the real session user (for data fetching)
         const nameMap: Record<string, string> = {
-          student: 'Budi Santoso (Mock Student)',
-          lecturer: 'Dr. Ahmad Sutanto, M.Kom.',
-          administrator: 'Administrator Intervox',
-          dean: 'Prof. Dr. H. Hendra Kurniawan',
+          student:       'Gus Tiran (Student)',
+          lecturer:      'Dr. Ahmad Sutanto, M.Kom.',
+          administrator: 'Admin Intervox',
+          dean:          'Prof. Dr. H. Hendra Kurniawan, M.Sc.',
         };
-        const mockUser = {
-          id: 'mock-user-id-' + role,
-          email: `${role}@intervox.id`,
-          user_metadata: { full_name: nameMap[role] || 'Mock User' },
+        const mockUser = session?.user ?? {
+          id: `mock-${mockRoleParam}`,
+          email: `${mockRoleParam}@intervox.id`,
+          user_metadata: { full_name: nameMap[mockRoleParam] },
         } as any;
+
         setUser(mockUser);
         setUserData({
           uid: mockUser.id,
           email: mockUser.email,
-          fullName: nameMap[role] || 'Mock User',
-          role: role,
+          fullName: nameMap[mockRoleParam] || mockRoleParam,
+          role: mockRoleParam,
           accountStatus: 'approved',
         });
         setLoading(false);
         return;
       }
-    }
 
-    // Get initial session
-    const initAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
         setUser(session.user);
         await syncUserData(session.user);
@@ -81,12 +82,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Listen to auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        // Do not process auth state changes if mock auth is active
-        if (typeof window !== 'undefined') {
-          const params = new URLSearchParams(window.location.search);
-          const isMockAuth = params.get('mockAuth') === '1' || Boolean(params.get('mockRole'));
-          if (isMockAuth) return;
-        }
+        // If mockRole is active, don't let auth state changes override the mock
+        if (mockRoleParam) return;
 
         const currentUser = session?.user ?? null;
         setUser(currentUser);

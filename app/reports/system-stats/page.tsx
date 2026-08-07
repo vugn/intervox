@@ -2,33 +2,46 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
+import { useWireframe } from '@/app/client-layout';
 import { getSystemUsageStats, getSystemSettings } from '@/lib/data-service';
 import Link from 'next/link';
 import { ArrowLeft, Activity, Clock, FileText, CheckCircle, Download } from 'lucide-react';
 import * as motion from 'motion/react-client';
 import ReportTemplate from '@/components/report-template';
 
+const DEMO_STATS = {
+  total_sessions: 64,
+  completed_sessions: 57,
+  avg_duration_minutes: 22,
+  most_popular_module: 'Technical Interview',
+};
+
 export default function SystemStatsReport() {
   const { user, userData, loading: authLoading } = useAuth();
+  const isWireframe = useWireframe();
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [headOfProgram, setHeadOfProgram] = useState<any>(null);
 
+  const allowedRoles = ['administrator', 'dean', 'head_of_program'];
+
   useEffect(() => {
     const fetchStats = async () => {
       if (authLoading) return;
-      if (!user || (userData?.role !== 'administrator' && userData?.role !== 'head_of_program')) {
+      if (!user || !allowedRoles.includes(userData?.role)) {
+        if (isWireframe) { setStats(DEMO_STATS); }
         setLoading(false);
         return;
       }
 
       try {
         const data = await getSystemUsageStats();
-        setStats(data);
+        setStats(isWireframe && !data ? DEMO_STATS : (data ?? (isWireframe ? DEMO_STATS : null)));
         const settings = await getSystemSettings('head_of_program_signature');
         setHeadOfProgram(settings);
       } catch (error) {
         console.error("Error fetching system stats:", error);
+        if (isWireframe) setStats(DEMO_STATS);
       } finally {
         setLoading(false);
       }
@@ -45,7 +58,7 @@ export default function SystemStatsReport() {
     );
   }
 
-  if (!user || (userData?.role !== 'administrator' && userData?.role !== 'head_of_program')) {
+  if (!isWireframe && (!user || !allowedRoles.includes(userData?.role))) {
     return (
       <div className="flex-1 flex items-center justify-center p-4">
         <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 text-center max-w-md w-full">
@@ -66,7 +79,7 @@ export default function SystemStatsReport() {
       requireSignature={true}
       headOfProgram={headOfProgram}
     >
-      <div className="mb-6 flex items-center justify-between gap-4 print:hidden">
+      <div className="mb-6 flex items-center justify-between gap-4 print:hidden [.wf-mode_&]:hidden">
         <Link href="/reports" className="inline-flex items-center text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors">
           <ArrowLeft className="w-4 h-4 mr-1" />
           Kembali ke Daftar Laporan

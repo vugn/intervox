@@ -6,9 +6,140 @@ import { useParams } from 'next/navigation';
 import { REPORT_ITEMS } from '@/lib/report-templates';
 import { ArrowLeft, Download, FileSpreadsheet } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
+import { useWireframe } from '@/app/client-layout';
 import { getAnalysisBySession, getConversationBySession, getRecommendationsBySession, getSessionById, listAllSessions, listQuestionsByCategory, listSessionsByUser, getSystemSettings } from '@/lib/data-service';
 import { jsPDF } from 'jspdf';
 import ReportTemplate from '@/components/report-template';
+
+// ── Demo fallback rows for wireframe mode ─────────────────────────────────────
+const DEMO_ROWS: Record<string, Array<Record<string, string | number>>> = {
+
+  // ── Student Reports ─────────────────────────────────────────────────────────
+  'strength-weakness': [
+    { Tipe: 'Kekuatan', Detail: 'Komunikasi yang jelas dan terstruktur saat menjelaskan pengalaman kerja' },
+    { Tipe: 'Kekuatan', Detail: 'Kemampuan problem-solving yang baik dengan pendekatan STAR method' },
+    { Tipe: 'Kekuatan', Detail: 'Antusias dan motivasi tinggi dalam menjawab pertanyaan behavioral' },
+    { Tipe: 'Area Perbaikan', Detail: 'Perlu memperdalam pengetahuan teknis terkait arsitektur sistem terdistribusi' },
+    { Tipe: 'Area Perbaikan', Detail: 'Jawaban terkadang terlalu panjang, perlu lebih ringkas dan fokus pada inti' },
+    { Tipe: 'Area Perbaikan', Detail: 'Kurang memberikan data kuantitatif dalam contoh pencapaian kerja' },
+  ],
+
+  'transcript': [
+    { No: 1, Pembicara: 'Interviewer', Ucapan: 'Selamat datang! Ceritakan tentang diri Anda dan pengalaman Anda di bidang ini.', Waktu: '07/08/2026, 10.00.00' },
+    { No: 2, Pembicara: 'Kandidat', Ucapan: 'Terima kasih. Saya adalah mahasiswa semester akhir Teknik Informatika dengan pengalaman magang 6 bulan di startup teknologi sebagai software developer.', Waktu: '07/08/2026, 10.00.45' },
+    { No: 3, Pembicara: 'Interviewer', Ucapan: 'Ceritakan tantangan terbesar yang pernah Anda hadapi dalam sebuah proyek dan bagaimana Anda mengatasinya.', Waktu: '07/08/2026, 10.01.10' },
+    { No: 4, Pembicara: 'Kandidat', Ucapan: 'Di magang, saya menghadapi deadline ketat untuk fitur pembayaran. Saya berkoordinasi dengan tim, membagi tugas, dan menyelesaikannya dengan sprint tambahan.', Waktu: '07/08/2026, 10.02.00' },
+    { No: 5, Pembicara: 'Interviewer', Ucapan: 'Teknologi apa yang paling Anda kuasai dan mengapa Anda memilihnya?', Waktu: '07/08/2026, 10.02.30' },
+    { No: 6, Pembicara: 'Kandidat', Ucapan: 'Saya menguasai JavaScript dan React untuk frontend, serta Node.js untuk backend karena produktivitas tinggi dan komunitas yang besar.', Waktu: '07/08/2026, 10.03.15' },
+    { No: 7, Pembicara: 'Interviewer', Ucapan: 'Bagaimana cara Anda bekerja dalam tim yang anggotanya memiliki pendapat berbeda?', Waktu: '07/08/2026, 10.04.00' },
+    { No: 8, Pembicara: 'Kandidat', Ucapan: 'Saya selalu mendengarkan perspektif semua anggota lalu mencari titik temu. Saya percaya diskusi terbuka menghasilkan solusi yang lebih baik.', Waktu: '07/08/2026, 10.04.45' },
+  ],
+
+  'answer-comparison': [
+    { No: 1, Pertanyaan: 'Ceritakan tentang diri Anda dan pengalaman Anda.', 'Jawaban Kandidat': 'Saya mahasiswa TI semester akhir, pernah magang 6 bulan di startup teknologi sebagai developer.', 'Patokan Jawaban Ideal': 'Jawaban spesifik, terstruktur (STAR), relevan posisi, dan menyertakan pencapaian kuantitatif yang nyata.' },
+    { No: 2, Pertanyaan: 'Apa kelebihan utama Anda?', 'Jawaban Kandidat': 'Saya cepat belajar dan suka bekerja tim. Pernah menyelesaikan proyek dalam waktu singkat bersama rekan.', 'Patokan Jawaban Ideal': 'Sebutkan 2-3 kelebihan spesifik yang relevan dengan posisi, dukung dengan bukti nyata dan dampaknya.' },
+    { No: 3, Pertanyaan: 'Di mana Anda melihat diri Anda dalam 5 tahun ke depan?', 'Jawaban Kandidat': 'Saya ingin menjadi senior developer dan berkontribusi pada proyek berskala besar.', 'Patokan Jawaban Ideal': 'Tunjukkan ambisi realistis yang selaras dengan pertumbuhan perusahaan dan jalur karier yang jelas.' },
+    { No: 4, Pertanyaan: 'Bagaimana Anda menangani tekanan dan deadline ketat?', 'Jawaban Kandidat': 'Saya membuat prioritas tugas dan berkomunikasi dengan tim jika ada hambatan.', 'Patokan Jawaban Ideal': 'Berikan contoh konkret situasi tekanan tinggi, tindakan yang diambil, dan hasil yang dicapai secara spesifik.' },
+  ],
+
+  'development-recommendation': [
+    { Prioritas: 1, Tipe: 'Teknik Komunikasi', Rekomendasi: 'Latih metode STAR (Situation, Task, Action, Result) untuk menjawab pertanyaan behavioral secara terstruktur.' },
+    { Prioritas: 2, Tipe: 'Pendalaman Teknis', Rekomendasi: 'Pelajari konsep sistem terdistribusi dan arsitektur microservices untuk memperkuat kompetensi teknis.' },
+    { Prioritas: 3, Tipe: 'Kuantifikasi Pencapaian', Rekomendasi: 'Siapkan minimal 5 contoh pencapaian dengan data numerik (persentase, jumlah, waktu) untuk memperkuat kredibilitas.' },
+    { Prioritas: 4, Tipe: 'Manajemen Waktu Jawab', Rekomendasi: 'Batasi jawaban maksimal 2-3 menit. Gunakan teknik PREP (Point, Reason, Example, Point) agar lebih ringkas.' },
+    { Prioritas: 5, Tipe: 'Pengetahuan Industri', Rekomendasi: 'Ikuti perkembangan tren teknologi terkini (AI, cloud, DevOps) yang relevan dengan bidang karier yang dituju.' },
+  ],
+
+  'certificate': [
+    { 'Nomor Sertifikat': 'INTVX-A1B2C3D4', 'Nama Kandidat': 'Gus Tiran', Posisi: 'Software Engineer', Perusahaan: 'PT. Teknologi Maju Indonesia', 'Nilai Akhir': 87, Predikat: 'Sangat Baik', 'Tanggal Terbit': '7/8/2026, 10.30.00' },
+  ],
+
+  'progress-chart': [
+    { Sesi: 1, Tanggal: '1/7/2026, 09.00.00', Posisi: 'Software Engineer', Skor: 58 },
+    { Sesi: 2, Tanggal: '8/7/2026, 14.00.00', Posisi: 'Software Engineer', Skor: 65 },
+    { Sesi: 3, Tanggal: '15/7/2026, 10.30.00', Posisi: 'Backend Developer', Skor: 72 },
+    { Sesi: 4, Tanggal: '22/7/2026, 09.15.00', Posisi: 'Backend Developer', Skor: 75 },
+    { Sesi: 5, Tanggal: '29/7/2026, 11.00.00', Posisi: 'Software Engineer', Skor: 81 },
+    { Sesi: 6, Tanggal: '5/8/2026, 09.30.00', Posisi: 'Software Engineer', Skor: 87 },
+  ],
+
+  'score-evaluation': [
+    { Sesi: 'SES-001', Kandidat: 'Gus Tiran', Posisi: 'Software Engineer', Modul: 'Technical Interview', Status: 'completed', Skor: 87, 'Skor Ekspresi': 82, Tanggal: '5/8/2026, 09.30.00' },
+    { Sesi: 'SES-002', Kandidat: 'Gus Tiran', Posisi: 'Backend Developer', Modul: 'Behavioral Interview', Status: 'completed', Skor: 75, 'Skor Ekspresi': 70, Tanggal: '29/7/2026, 11.00.00' },
+    { Sesi: 'SES-003', Kandidat: 'Rina Septiani', Posisi: 'Software Engineer', Modul: 'Technical Interview', Status: 'completed', Skor: 65, 'Skor Ekspresi': 60, Tanggal: '22/7/2026, 09.15.00' },
+    { Sesi: 'SES-004', Kandidat: 'Dimas Pratama', Posisi: 'Data Analyst', Modul: 'Case Study Interview', Status: 'completed', Skor: 79, 'Skor Ekspresi': 74, Tanggal: '20/7/2026, 14.00.00' },
+  ],
+
+  // ── Lecturer Reports ────────────────────────────────────────────────────────
+  'question-bank-usage': [
+    { 'Kategori / Bidang': 'Software Engineer', 'Total Penggunaan': 24, 'Rata-rata Skor': 78, 'Status Pemakaian': 'Tinggi' },
+    { 'Kategori / Bidang': 'Backend Developer', 'Total Penggunaan': 18, 'Rata-rata Skor': 72, 'Status Pemakaian': 'Tinggi' },
+    { 'Kategori / Bidang': 'Data Analyst', 'Total Penggunaan': 11, 'Rata-rata Skor': 70, 'Status Pemakaian': 'Sedang' },
+    { 'Kategori / Bidang': 'UI/UX Designer', 'Total Penggunaan': 7, 'Rata-rata Skor': 68, 'Status Pemakaian': 'Sedang' },
+    { 'Kategori / Bidang': 'Product Manager', 'Total Penggunaan': 4, 'Rata-rata Skor': 65, 'Status Pemakaian': 'Normal' },
+  ],
+
+  'student-competency-summary': [
+    { 'Nama Mahasiswa': 'Gus Tiran', 'Total Sesi Latihan': 6, 'Rata-rata Nilai Akhir': 79, 'Capaian Kompetensi': 'Baik' },
+    { 'Nama Mahasiswa': 'Rina Septiani', 'Total Sesi Latihan': 4, 'Rata-rata Nilai Akhir': 72, 'Capaian Kompetensi': 'Perlu Peningkatan' },
+    { 'Nama Mahasiswa': 'Dimas Pratama', 'Total Sesi Latihan': 5, 'Rata-rata Nilai Akhir': 85, 'Capaian Kompetensi': 'Sangat Baik' },
+    { 'Nama Mahasiswa': 'Sari Wulandari', 'Total Sesi Latihan': 3, 'Rata-rata Nilai Akhir': 68, 'Capaian Kompetensi': 'Perlu Peningkatan' },
+    { 'Nama Mahasiswa': 'Andika Putra', 'Total Sesi Latihan': 7, 'Rata-rata Nilai Akhir': 88, 'Capaian Kompetensi': 'Sangat Baik' },
+  ],
+
+  'class-error-analysis': [
+    { 'Indikator / Area Kelemahan': 'Jawaban tidak disertai data kuantitatif', 'Jumlah Sesi Terdeteksi': 14, 'Persentase Kelemahan (%)': 61, 'Rekomendasi AI': 'Latih penyertaan angka/persentase dalam setiap pencapaian yang disampaikan.' },
+    { 'Indikator / Area Kelemahan': 'Jawaban terlalu panjang dan tidak fokus', 'Jumlah Sesi Terdeteksi': 11, 'Persentase Kelemahan (%)': 47, 'Rekomendasi AI': 'Gunakan teknik PREP untuk mempersingkat dan mempertajam inti jawaban.' },
+    { 'Indikator / Area Kelemahan': 'Kurang referensi pengalaman nyata', 'Jumlah Sesi Terdeteksi': 9, 'Persentase Kelemahan (%)': 39, 'Rekomendasi AI': 'Siapkan bank cerita pengalaman berdasarkan kompetensi yang sering ditanyakan.' },
+    { 'Indikator / Area Kelemahan': 'Pengetahuan teknis arsitektur sistem kurang', 'Jumlah Sesi Terdeteksi': 7, 'Persentase Kelemahan (%)': 30, 'Rekomendasi AI': 'Pelajari konsep microservices, REST API, dan database indexing secara mendalam.' },
+  ],
+
+  'question-difficulty-evaluation': [
+    { 'Tingkat Kesulitan': 'Mudah (Easy)', 'Total Sesi Dijawab': 8, 'Rata-rata Skor Mahasiswa': 85, 'Status Evaluasi': 'Soal Efektif' },
+    { 'Tingkat Kesulitan': 'Sedang (Medium)', 'Total Sesi Dijawab': 12, 'Rata-rata Skor Mahasiswa': 74, 'Status Evaluasi': 'Soal Efektif' },
+    { 'Tingkat Kesulitan': 'Sulit (Hard)', 'Total Sesi Dijawab': 5, 'Rata-rata Skor Mahasiswa': 61, 'Status Evaluasi': 'Perlu Pembahasan Kelas' },
+  ],
+
+  'student-practice-attendance': [
+    { 'Mahasiswa': 'Gus Tiran', 'Total Sesi Selesai': 6, 'Sesi Terakhir': '5/8/2026, 09.30.00', 'Status Keaktifan': 'Aktif Berlatih' },
+    { 'Mahasiswa': 'Dimas Pratama', 'Total Sesi Selesai': 7, 'Sesi Terakhir': '6/8/2026, 13.00.00', 'Status Keaktifan': 'Aktif Berlatih' },
+    { 'Mahasiswa': 'Andika Putra', 'Total Sesi Selesai': 5, 'Sesi Terakhir': '4/8/2026, 10.15.00', 'Status Keaktifan': 'Aktif Berlatih' },
+    { 'Mahasiswa': 'Rina Septiani', 'Total Sesi Selesai': 2, 'Sesi Terakhir': '28/7/2026, 14.00.00', 'Status Keaktifan': 'Perlu Dorongan Latihan' },
+    { 'Mahasiswa': 'Sari Wulandari', 'Total Sesi Selesai': 1, 'Sesi Terakhir': '20/7/2026, 09.00.00', 'Status Keaktifan': 'Perlu Dorongan Latihan' },
+  ],
+
+  'lecturer-mentoring-summary': [
+    { 'Nama Mahasiswa': 'Gus Tiran', 'Program Studi': 'Teknik Informatika', 'Jumlah Sesi Bimbingan AI': 6, 'Nilai Evaluasi Akhir': 79, 'Status Rekomendasi': 'Siap Kerja / Kompeten' },
+    { 'Nama Mahasiswa': 'Dimas Pratama', 'Program Studi': 'Teknik Informatika', 'Jumlah Sesi Bimbingan AI': 7, 'Nilai Evaluasi Akhir': 88, 'Status Rekomendasi': 'Siap Kerja / Kompeten' },
+    { 'Nama Mahasiswa': 'Andika Putra', 'Program Studi': 'Sistem Informasi', 'Jumlah Sesi Bimbingan AI': 5, 'Nilai Evaluasi Akhir': 85, 'Status Rekomendasi': 'Siap Kerja / Kompeten' },
+    { 'Nama Mahasiswa': 'Rina Septiani', 'Program Studi': 'Teknik Informatika', 'Jumlah Sesi Bimbingan AI': 2, 'Nilai Evaluasi Akhir': 65, 'Status Rekomendasi': 'Perlu Bimbingan Tambahan' },
+    { 'Nama Mahasiswa': 'Sari Wulandari', 'Program Studi': 'Sistem Informasi', 'Jumlah Sesi Bimbingan AI': 1, 'Nilai Evaluasi Akhir': 58, 'Status Rekomendasi': 'Perlu Bimbingan Tambahan' },
+  ],
+
+  // ── Admin / Dean Reports ─────────────────────────────────────────────────────
+  'active-participants': [
+    { UserId: 'user-001 (Gus Tiran)', TotalSesi: 6, Status: 'Aktif' },
+    { UserId: 'user-002 (Dimas Pratama)', TotalSesi: 7, Status: 'Aktif' },
+    { UserId: 'user-003 (Andika Putra)', TotalSesi: 5, Status: 'Aktif' },
+    { UserId: 'user-004 (Rina Septiani)', TotalSesi: 2, Status: 'Kurang Aktif' },
+    { UserId: 'user-005 (Sari Wulandari)', TotalSesi: 1, Status: 'Kurang Aktif' },
+    { UserId: 'user-006 (Budi Santoso)', TotalSesi: 4, Status: 'Aktif' },
+  ],
+
+  'module-statistics': [
+    { Modul: 'Technical Interview', Penggunaan: 24 },
+    { Modul: 'Behavioral Interview', Penggunaan: 18 },
+    { Modul: 'Case Study Interview', Penggunaan: 11 },
+    { Modul: 'HR Interview', Penggunaan: 8 },
+    { Modul: 'Leadership Interview', Penggunaan: 5 },
+  ],
+
+  'difficulty-analysis': [
+    { Level: 'easy', TotalSesi: 8, 'Sesi Skor < 70': 1, 'Persentase Kesulitan (%)': 13 },
+    { Level: 'medium', TotalSesi: 14, 'Sesi Skor < 70': 4, 'Persentase Kesulitan (%)': 29 },
+    { Level: 'hard', TotalSesi: 5, 'Sesi Skor < 70': 3, 'Persentase Kesulitan (%)': 60 },
+  ],
+};
 
 const formatDate = (value: unknown) => {
     if (!value) return '-';
@@ -39,6 +170,7 @@ export default function ReportDetailPage() {
     const params = useParams();
     const type = params.type as string;
     const { user, userData } = useAuth();
+    const isWireframe = useWireframe();
     const [rows, setRows] = useState<Array<Record<string, string | number>>>([]);
     const [sessionOptions, setSessionOptions] = useState<any[]>([]);
     const [selectedSessionId, setSelectedSessionId] = useState('');
@@ -455,6 +587,16 @@ export default function ReportDetailPage() {
                     }
                     default:
                         dynamicRows = [];
+                }
+
+                // In wireframe mode, fall back to demo data if real data is empty
+                if (isWireframe && dynamicRows.length === 0 && DEMO_ROWS[type]) {
+                    dynamicRows = DEMO_ROWS[type];
+                }
+
+                // Limit rows to 5 items in wireframe mode to keep screenshots compact
+                if (isWireframe) {
+                    dynamicRows = dynamicRows.slice(0, 5);
                 }
 
                 setRows(dynamicRows);

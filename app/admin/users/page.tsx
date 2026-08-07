@@ -78,6 +78,10 @@ export default function AdminUsersPage() {
     }
   };
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, filter]);
+
   if (userData?.role !== 'administrator') {
     return (
       <div className="flex-1 flex items-center justify-center p-8">
@@ -89,10 +93,6 @@ export default function AdminUsersPage() {
       </div>
     );
   }
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [search, filter]);
 
   const filteredUsers = users.filter(u => {
     const matchesFilter = filter === 'all' || u.accountStatus === filter;
