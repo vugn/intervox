@@ -3,6 +3,8 @@
 Berikut adalah *sequence diagram* untuk alur kerja keempat *role* (Student, Lecturer, Administrator, Dean) dalam sistem Intervox.
 
 ## 1. Student Flow
+Diagram ini mengilustrasikan proses menyeluruh (end-to-end) bagi seorang Student, mulai dari masuk ke sistem, memilih modul, dan mempersiapkan sesi latihan, hingga berinteraksi langsung dengan agen AI secara waktu-nyata (real-time). Setelah latihan selesai, sistem secara otomatis akan menghasilkan laporan komprehensif berisi skor dan umpan balik yang dapat langsung ditinjau oleh Student.
+
 ```text
 autoNumber on
 
@@ -55,6 +57,8 @@ deactivate Frontend
 ```
 
 ## 2. Lecturer Flow
+Diagram ini menunjukkan bagaimana seorang Lecturer berinteraksi dengan sistem untuk mengelola materi latihan dan memantau kemajuan mahasiswa. Proses ini mencakup penambahan dan modifikasi pertanyaan di dalam bank soal, serta mengakses laporan analitik kelas untuk mengevaluasi ringkasan kompetensi mahasiswa bimbingannya.
+
 ```text
 autoNumber on
 
@@ -97,6 +101,8 @@ deactivate Frontend
 ```
 
 ## 3. Administrator Flow
+Diagram ini menggambarkan kewenangan Administrator dalam menjaga tata kelola dan konfigurasi sistem Intervox. Alur utamanya meliputi peninjauan dan verifikasi akun pengguna baru (menyetujui atau menolak akses), serta pengelolaan pengaturan sistem krusial seperti mengunggah tanda tangan elektronik Dekan untuk keperluan pengesahan dokumen.
+
 ```text
 autoNumber on
 
@@ -146,6 +152,8 @@ deactivate Frontend
 ```
 
 ## 4. Dean Flow
+Diagram ini menjelaskan alur akses tingkat eksekutif bagi seorang Dean (Dekan). Fokus aktivitasnya adalah pemantauan makro melalui dasbor analitik yang menyajikan metrik adopsi dan statistik keseluruhan sistem. Dean juga dapat mengakses dan mengunduh laporan-laporan resmi yang mencakup rekap institusi secara utuh.
+
 ```text
 autoNumber on
 

@@ -146,25 +146,29 @@ Pemodelan **Data Flow Diagram (DFD)** sistem Intervox disusun mulai dari Level 0
 
 ### 3.2.1 DFD Level 0 (Context Diagram)
 
-Diagram konteks menggambarkan interaksi sistem secara keseluruhan dengan entitas eksternal (_Terminators_).
+Diagram konteks menggambarkan interaksi sistem secara keseluruhan dengan entitas eksternal (_Terminators_). Entitas eksternal pada sistem Intervox terdiri atas empat role pengguna, yaitu **Student**, **Lecturer**, **Dean**, dan **Administrator**, serta satu entitas layanan pihak ketiga yaitu **AI Engine** yang bertugas melakukan analisis penilaian wawancara.
 
 ```mermaid
 graph LR
-    ST["Student / Kandidat"]
+    ST["Student"]
+    LC["Lecturer"]
+    DN["Dean"]
     AD["Administrator"]
-    LC["Lecturer / Dosen"]
-    AI["AI Engine / LLM"]
+    AI["AI Engine"]
 
     SYS(("0. Sistem Intervox"))
 
-    ST -->|Data Profil, Video/Audio Jawaban, Feedback| SYS
-    SYS -->|Auth Token, Pertanyaan, Hasil Analisis, PDF Laporan| ST
+    ST -->|Data Registrasi, Profil Akademik, Jawaban Suara, Data Ekspresi Wajah, Feedback Pengguna| SYS
+    SYS -->|Token Autentikasi, Pertanyaan Wawancara, Hasil Analisis, Laporan Evaluasi| ST
 
-    AD -->|Verifikasi Akun, Konfigurasi Sistem| SYS
-    SYS -->|Statistik Penggunaan, Data Pengguna| AD
+    LC -->|Data Bank Soal, Ulasan Pakar, Rating Bintang| SYS
+    SYS -->|Data Sesi Student, Statistik Performa, Laporan Evaluasi| LC
 
-    LC -->|Verifikasi Pakar, Feedback Manual| SYS
-    SYS -->|Data Sesi Mahasiswa, Laporan Evaluasi| LC
+    DN -->|Parameter Periode Evaluasi, Disposisi Pimpinan| SYS
+    SYS -->|Laporan Agregat Fakultas, Rekap Capaian Student| DN
+
+    AD -->|Status Verifikasi Akun, Master Data, Konfigurasi Sistem| SYS
+    SYS -->|Data Pengguna, Statistik Penggunaan Sistem, Laporan Sistem| AD
 
     SYS -->|Transkrip Wawancara, System Prompt| AI
     AI -->|Skor Penilaian, Rekomendasi, Feedback STAR| SYS
@@ -181,8 +185,9 @@ Level 1 memecah Sistem Intervox menjadi proses-proses utama (sub-sistem) dan bag
 ```mermaid
 graph TD
     ST["Student"]
-    AD["Administrator"]
     LC["Lecturer"]
+    DN["Dean"]
+    AD["Administrator"]
     AI["AI Engine"]
 
     P1(("1. Manajemen<br>Pengguna"))
@@ -196,30 +201,34 @@ graph TD
     D3[("D3. Interview Sessions")]
     D4[("D4. Analysis Results")]
 
-    ST -->|Registrasi & Profil| P1
-    AD -->|Verifikasi Akun| P1
-    P1 -->|Simpan Data User| D1
+    ST -->|Data Registrasi dan Profil Akademik| P1
+    AD -->|Status Verifikasi Akun| P1
+    P1 -->|Simpan Data Pengguna| D1
+    D1 -->|Data Akun Terverifikasi| P1
 
-    AD -->|Setup Kategori & Soal| P2
-    P2 -->|Simpan Referensi| D2
+    LC -->|Data Bank Soal| P2
+    AD -->|Data Kategori Modul dan Kriteria Penilaian| P2
+    P2 -->|Simpan Master Data| D2
 
-    ST -->|Input Suara/Teks, Video Ekspresi| P3
+    ST -->|Jawaban Suara dan Data Ekspresi Wajah| P3
     D2 -->|Daftar Pertanyaan| P3
-    D1 -->|Validasi Akses| P3
-    P3 -->|Simpan Sesi & Log Percakapan| D3
+    D1 -->|Validasi Hak Akses| P3
+    P3 -->|Simpan Sesi dan Log Percakapan| D3
 
     D3 -->|Transkrip Sesi| P4
-    P4 -->|Kirim Transkrip| AI
-    AI -->|Skor, Feedback, STAR| P4
-    LC -->|Validasi Pakar| P4
+    P4 -->|Kirim Transkrip dan System Prompt| AI
+    AI -->|Skor, Rekomendasi, Feedback STAR| P4
+    LC -->|Ulasan Pakar dan Rating Bintang| P4
     P4 -->|Simpan Hasil Analisis| D4
 
-    D4 -->|Data Metrik| P5
-    D3 -->|Data Sesi| P5
+    D4 -->|Data Metrik Penilaian| P5
+    D3 -->|Data Sesi Wawancara| P5
     D1 -->|Data Pengguna| P5
-    P5 -->|Akses Laporan Pribadi| ST
-    P5 -->|Akses Laporan Verifikasi| AD
-    P5 -->|Akses Evaluasi Nilai| LC
+    P5 -->|Laporan Evaluasi Pribadi| ST
+    P5 -->|Laporan Performa Student Bimbingan| LC
+    P5 -->|Laporan Agregat Fakultas| DN
+    P5 -->|Laporan Statistik Penggunaan Sistem| AD
+    DN -->|Disposisi Pimpinan| P5
 ```
 
 **Gambar 3.4** DFD Level 1 — Proses Utama Sistem Intervox
@@ -243,18 +252,18 @@ graph TD
     D3_1[("D3.1 Interview Sessions")]
     D3_2[("D3.2 Conversation Logs")]
 
-    ST -->|Setup Parameter Role & Bahasa| P3_1
-    P3_1 -->|Buat ID Sesi| D3_1
+    ST -->|Parameter Posisi, Bahasa, dan Tingkat Kesulitan| P3_1
+    P3_1 -->|Simpan ID Sesi Baru| D3_1
 
-    D2 -->|Pertanyaan Sistem| P3_2
-    ST -->|Jawaban Kandidat| P3_2
-    P3_2 -->|Simpan Log Percakapan Teks/Suara| D3_2
+    D2 -->|Daftar Pertanyaan| P3_2
+    ST -->|Jawaban Student| P3_2
+    P3_2 -->|Simpan Log Percakapan| D3_2
 
-    ST -->|Video Stream| P3_3
-    P3_3 -->|Simpan Dominasi Emosi| D3_1
+    ST -->|Data Stream Kamera| P3_3
+    P3_3 -->|Simpan Dominasi Ekspresi| D3_1
 
     ST -->|Sinyal Akhiri Wawancara| P3_4
-    P3_4 -->|Update Status ke Analyzing| D3_1
+    P3_4 -->|Perbarui Status Sesi menjadi Analyzing| D3_1
 ```
 
 **Gambar 3.5** DFD Level 2 — Breakdown Proses Pelaksanaan Wawancara
@@ -267,33 +276,33 @@ Level ini menjabarkan bagaimana sistem meracik _prompt_, memanggil API LLM (Gemi
 
 ```mermaid
 graph TD
-    AI["AI Engine / LLM"]
+    AI["AI Engine"]
     LC["Lecturer"]
 
     P4_1(("4.1 Persiapan<br>Prompt & Konteks"))
     P4_2(("4.2 Eksekusi<br>LLM API"))
     P4_3(("4.3 Pemrosesan<br>Skor & Metrik"))
     P4_4(("4.4 Pemrosesan<br>Rekomendasi"))
-    P4_5(("4.5 Verifikasi<br>Dosen Pakar"))
+    P4_5(("4.5 Verifikasi<br>Lecturer"))
 
     D3_1[("D3.1 Interview Sessions")]
     D4_1[("D4.1 Analysis Results")]
     D4_2[("D4.2 AI Recommendations")]
 
-    D3_1 -->|Ambil Transkrip & Konteks Peran| P4_1
-    P4_1 -->|Struktur Data Siap Uji| P4_2
+    D3_1 -->|Transkrip dan Konteks Sesi| P4_1
+    P4_1 -->|Struktur Prompt Siap Kirim| P4_2
 
-    P4_2 -->|Kirim Request| AI
-    AI -->|Terima Respons JSON| P4_2
+    P4_2 -->|Request Analisis| AI
+    AI -->|Respons JSON Penilaian| P4_2
 
-    P4_2 -->|Payload Skor AI| P4_3
-    P4_3 -->|Simpan Skor Total & Kekuatan| D4_1
+    P4_2 -->|Payload Skor Penilaian| P4_3
+    P4_3 -->|Simpan Skor, Kekuatan, dan Kelemahan| D4_1
 
-    P4_2 -->|Payload Saran AI| P4_4
+    P4_2 -->|Payload Saran Perbaikan| P4_4
     P4_4 -->|Simpan Daftar Rekomendasi| D4_2
 
-    LC -->|Input Ulasan Manual & Bintang| P4_5
-    P4_5 -->|Update Status Verified| D3_1
+    LC -->|Ulasan Pakar dan Rating Bintang| P4_5
+    P4_5 -->|Perbarui Status Sesi menjadi Verified| D3_1
 ```
 
 **Gambar 3.6** DFD Level 3 — Breakdown Proses Analisis AI
@@ -329,7 +338,11 @@ graph TD
     P4_3_5 -->|Hitung Rata-rata &<br>Simpan ke Database| D4_1
 ```
 
-**Gambar 3.7** DFD Level 4 — Breakdown Pemrosesan Skor & Me## 3.3 Activity Diagram
+**Gambar 3.7** DFD Level 4 — Breakdown Pemrosesan Skor & Metrik
+
+---
+
+## 3.3 Activity Diagram
 
 Activity diagram merupakan diagram alir yang memodelkan tahapan proses atau alur kerja (*workflow*) dari setiap fungsi yang ada di dalam sistem. Pada pemodelan sistem Intervox ini, activity diagram disusun **per fungsi per role** secara komprehensif dan lengkap untuk seluruh aktivitas yang memerlukan input data dari pengguna (*input-driven processes*), meliputi 4 (empat) peran utama aplikasi yaitu: **Mahasiswa (*Student*)**, **Dosen Pembimbing (*Lecturer*)**, **Dekan / Pimpinan Fakultas (*Dean*)**, dan **Administrator (*Admin*)**.
 
