@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { listAllUsers, updateUserAccountStatus } from '@/lib/data-service';
+import { listAllUsers, updateUserAccountStatus, updateUserRole } from '@/lib/data-service';
 import { notifyAccountApproved } from '@/app/actions/email';
 import { useAuth } from '@/hooks/use-auth';
 import { CheckCircle, XCircle, Clock, Search, AlertCircle, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -37,6 +37,22 @@ export default function AdminUsersPage() {
       console.error('Failed to load users:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleUpdateRole = async (userId: string, newRole: string) => {
+    if (!window.confirm(`Apakah Anda yakin ingin mengubah role pengguna ini menjadi ${newRole}?`)) return;
+
+    setActionLoading(userId + '-role');
+    try {
+      await updateUserRole(userId, newRole);
+      
+      // Update local state
+      setUsers(users.map(u => u.id === userId ? { ...u, role: newRole } : u));
+    } catch (error) {
+      alert('Gagal mengupdate role pengguna.');
+    } finally {
+      setActionLoading(null);
     }
   };
 
@@ -156,7 +172,23 @@ export default function AdminUsersPage() {
                       <div className="font-medium text-slate-900">{user.fullName}</div>
                       <div className="text-slate-500">{user.email}</div>
                     </td>
-                    <td className="px-6 py-4 capitalize text-slate-600">{user.role.replace('_', ' ')}</td>
+                    <td className="px-6 py-4 text-slate-600">
+                      <div className="flex items-center">
+                        <select
+                          value={user.role}
+                          onChange={(e) => handleUpdateRole(user.id, e.target.value)}
+                          disabled={actionLoading === user.id + '-role'}
+                          className="bg-slate-50 border border-slate-200 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-1.5 capitalize cursor-pointer hover:bg-slate-100 transition-colors disabled:opacity-50"
+                        >
+                          <option value="student">Student</option>
+                          <option value="lecturer">Lecturer</option>
+                          <option value="administrator">Administrator</option>
+                          <option value="head_of_program">Head Of Program</option>
+                          <option value="dean">Dean</option>
+                        </select>
+                        {actionLoading === user.id + '-role' && <Loader2 className="w-4 h-4 ml-2 animate-spin text-indigo-500" />}
+                      </div>
+                    </td>
                     <td className="px-6 py-4 text-slate-500">
                       {new Date(user.createdAt).toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric' })}
                     </td>

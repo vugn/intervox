@@ -103,7 +103,7 @@ export default function AdminSettingsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">NIP / NIDN</label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">NIP</label>
                   <input
                     type="text"
                     value={headOfProgram.nip}
@@ -124,7 +124,7 @@ export default function AdminSettingsPage() {
                   className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
                 />
                 <p className="text-xs text-slate-500 mt-2">Gunakan URL gambar PNG transparan (contoh: dari Supabase Storage).</p>
-                
+
                 {headOfProgram.signature_url && (
                   <div className="mt-4 p-4 border border-dashed border-slate-300 rounded-xl bg-slate-50 flex flex-col items-center justify-center">
                     <p className="text-xs text-slate-400 mb-2 font-medium uppercase tracking-wider">Preview Tanda Tangan</p>

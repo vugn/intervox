@@ -81,6 +81,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Listen to auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        // Do not process auth state changes if mock auth is active
+        if (typeof window !== 'undefined') {
+          const params = new URLSearchParams(window.location.search);
+          const isMockAuth = params.get('mockAuth') === '1' || Boolean(params.get('mockRole'));
+          if (isMockAuth) return;
+        }
+
         const currentUser = session?.user ?? null;
         setUser(currentUser);
 

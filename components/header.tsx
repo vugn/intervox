@@ -52,7 +52,7 @@ export default function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white/90 backdrop-blur-md print:hidden">
+    <header className={`sticky top-0 z-50 w-full border-b border-slate-200 bg-white/90 backdrop-blur-md print:hidden ${pathname?.startsWith('/reports') ? '[.wf-mode_&]:hidden' : ''}`}>
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         {/* Brand */}
         <Link href={getLogoHref()} className="flex items-center gap-2 font-display font-bold text-xl text-indigo-600 flex-shrink-0">

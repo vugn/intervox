@@ -226,6 +226,18 @@ export async function updateUserAccountStatus(userId: string, status: 'pending' 
   }
 }
 
+export async function updateUserRole(userId: string, role: string) {
+  const { error } = await supabase
+    .from("users")
+    .update({ role, updated_at: new Date().toISOString() })
+    .eq("id", userId);
+
+  if (error) {
+    console.error("Error updating user role:", error);
+    throw error;
+  }
+}
+
 // ─── System Settings ─────────────────────────────────────────────────────────
 
 export async function getSystemSettings(key: string) {

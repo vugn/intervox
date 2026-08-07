@@ -99,7 +99,7 @@ export default function ReportTemplate({
             </div>
 
             <p className="text-sm font-bold underline">{dekanName}</p>
-            <p className="text-xs text-slate-600 mt-1">NIP/NIDN: {dekanNip}</p>
+            <p className="text-xs text-slate-600 mt-1">NIP: {dekanNip}</p>
           </div>
         </div>
       )}

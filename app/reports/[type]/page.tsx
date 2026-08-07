@@ -627,7 +627,7 @@ export default function ReportDetailPage() {
             requireSignature={report.requireSignature}
             hideHeader={type === 'certificate'}
         >
-            <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4 print:hidden">
+            <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4 print:hidden [.wf-mode_&]:hidden">
                 <div>
                     <Link href="/reports" className="inline-flex items-center text-sm text-slate-500 hover:text-slate-900 mb-2"><ArrowLeft className="w-4 h-4 mr-1" />Kembali</Link>
                     <h1 className="text-2xl md:text-3xl font-display font-bold text-slate-900">{report.title}</h1>
@@ -644,7 +644,7 @@ export default function ReportDetailPage() {
                 </div>
             </div>
 
-            <div className="mb-4 grid md:grid-cols-3 gap-3 print:hidden">
+            <div className="mb-4 grid md:grid-cols-3 gap-3 print:hidden [.wf-mode_&]:hidden">
                 <div className="space-y-1">
                     <label className="text-xs text-slate-500">Dari Tanggal</label>
                     <input
@@ -682,7 +682,7 @@ export default function ReportDetailPage() {
                 )}
             </div>
 
-            <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden print:overflow-visible">
+            <div className="bg-white border border-slate-200 [.wf-mode_&]:border-none rounded-2xl [.wf-mode_&]:rounded-none overflow-hidden print:overflow-visible">
                 {error && <p className="px-4 py-3 text-sm text-red-600 border-b border-slate-100">{error}</p>}
 
                 {type === 'certificate' ? (
@@ -718,7 +718,7 @@ export default function ReportDetailPage() {
                     </div>
                 ) : (
                     <div className="overflow-x-auto print:overflow-visible">
-                        <table className="w-full text-sm print:text-xs print:border-collapse border border-slate-200 print:border-slate-400">
+                        <table className="w-full text-sm print:text-xs print:border-collapse border border-slate-200 print:border-slate-400 [.wf-mode_&]:border-t [.wf-mode_&]:border-b [.wf-mode_&]:border-x-0">
                             <thead className="bg-slate-50 print:bg-slate-100 text-slate-700 print:text-slate-900 font-semibold border-b-2 border-slate-300 print:border-slate-400">
                                 <tr>
                                     {headers.map((header) => (

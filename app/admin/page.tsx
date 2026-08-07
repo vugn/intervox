@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { FolderTree, ListChecks, Scale, Users, Database } from 'lucide-react';
+import { FolderTree, ListChecks, Scale, Users, Database, Settings } from 'lucide-react';
 
 const adminMenus = [
     {
@@ -7,18 +7,6 @@ const adminMenus = [
         desc: 'Tambah/Edit kategori modul latihan interview.',
         href: '/admin/categories',
         icon: FolderTree,
-    },
-    {
-        title: 'Bank Pertanyaan',
-        desc: 'Kelola soal interview berdasarkan kategori.',
-        href: '/admin/questions',
-        icon: ListChecks,
-    },
-    {
-        title: 'Kriteria Penilaian',
-        desc: 'Atur bobot skor dan keyword jawaban ideal.',
-        href: '/admin/scoring',
-        icon: Scale,
     },
     {
         title: 'Data Dosen',
@@ -31,6 +19,12 @@ const adminMenus = [
         desc: 'Isi data contoh untuk demo dan pengujian fitur laporan.',
         href: '/admin/seed',
         icon: Database,
+    },
+    {
+        title: 'Pengaturan Sistem',
+        desc: 'Konfigurasi pengaturan sistem termasuk tanda tangan Dekan.',
+        href: '/admin/settings',
+        icon: Settings,
     },
 ];
 

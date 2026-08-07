@@ -6,6 +6,10 @@ const baseUrl = process.env.CAPTURE_BASE_URL || "http://localhost:3000";
 const outputDir = path.resolve(process.cwd(), "wireframes");
 const waitMs = Number(process.env.CAPTURE_WAIT_MS || 1500);
 
+const credentials = {
+
+};
+
 const routes = [
   // General & Auth
   { name: "01-general-landing", path: "/", preAuth: true },
@@ -30,11 +34,10 @@ const routes = [
   { name: "14-admin-dashboard", path: "/dashboard", role: "administrator" },
   { name: "15-admin-verification-users", path: "/admin/users", role: "administrator" },
   { name: "16-admin-categories", path: "/admin/categories", role: "administrator" },
-  { name: "17-admin-questions", path: "/admin/questions", role: "administrator" },
-  { name: "18-admin-scoring", path: "/admin/scoring", role: "administrator" },
   { name: "19-admin-lecturers", path: "/admin/lecturers", role: "administrator" },
   { name: "20-admin-reports-menu", path: "/reports", role: "administrator" },
   { name: "21-admin-profile", path: "/profile", role: "administrator" },
+  { name: "21b-admin-system-settings", path: "/admin/settings", role: "administrator" },
 
   // Laporan untuk Mahasiswa (Student Reports)
   { name: "22-report-student-transcript", path: "/reports/transcript", role: "student" },
@@ -65,17 +68,8 @@ function withWireframeParam(routePath) {
   return routePath.includes("?") ? `${routePath}&wf=1` : `${routePath}?wf=1`;
 }
 
-function withMockRoleParam(routePath, role = "administrator") {
-  return routePath.includes("?")
-    ? `${routePath}&mockRole=${role}`
-    : `${routePath}?mockRole=${role}`;
-}
-
 function buildCaptureUrl(route) {
-  const routeWithAuth = route.preAuth
-    ? route.path
-    : withMockRoleParam(route.path, route.role || "administrator");
-  return `${baseUrl}${withWireframeParam(routeWithAuth)}`;
+  return `${baseUrl}${withWireframeParam(route.path)}`;
 }
 
 async function waitWireframeMode(page) {
@@ -202,41 +196,6 @@ async function waitRouteReady(page, route) {
   }
 }
 
-async function seedData(page) {
-  const seedUrl = `${baseUrl}${withWireframeParam(withMockRoleParam("/admin/seed", "administrator"))}`;
-  await page.goto(seedUrl, {
-    waitUntil: "domcontentloaded",
-    timeout: 45000,
-  });
-
-  const wireframeReady = await waitWireframeMode(page);
-  if (!wireframeReady) {
-    console.warn("wf-mode not detected in time for admin-seed, continuing.");
-  }
-  await page.waitForTimeout(1000);
-
-  const seedButton = page.getByRole("button", {
-    name: /Tambahkan Data Contoh|Seed 35 Data Mockup|Seeding|Selesai!/i,
-  });
-
-  if ((await seedButton.count()) === 0) {
-    console.warn("Seed skipped: tombol seed tidak ditemukan di /admin/seed.");
-    return;
-  }
-
-  const label = (await seedButton.first().innerText()).trim();
-  if (!/Selesai!/i.test(label)) {
-    await seedButton.first().click();
-    await page
-      .getByText(/Berhasil!/i)
-      .waitFor({ timeout: 120000 })
-      .catch(() => null);
-  }
-
-  await page.waitForTimeout(1000);
-  console.log("Seed data ensured.");
-}
-
 async function ensureServerReady() {
   try {
     const response = await fetch(baseUrl, { method: "GET" });
@@ -248,6 +207,30 @@ async function ensureServerReady() {
       `Server tidak dapat diakses di ${baseUrl}. Jalankan app dulu (npm run dev) atau gunakan script auto: npm run capture:wireframes:auto.\n${error}`,
     );
   }
+}
+
+async function loginAs(page, role) {
+  const creds = credentials[role];
+  if (!creds) throw new Error(`Tidak ada kredensial untuk role ${role}`);
+
+  console.log(`\nLogging in as ${role} (${creds.email})...`);
+  await page.goto(`${baseUrl}/auth?wf=1`, { waitUntil: "domcontentloaded", timeout: 45000 });
+
+  await page.fill('input[type="email"]', creds.email);
+  await page.fill('input[type="password"]', creds.password);
+  
+  await Promise.all([
+    page.waitForNavigation({ waitUntil: "domcontentloaded", timeout: 60000 }).catch(() => null),
+    page.click('button[type="submit"]')
+  ]);
+
+  // Wait for redirect to dashboard or lecturer panel
+  await page.waitForFunction(() => {
+    return window.location.pathname !== '/auth' && !document.querySelector('.animate-spin');
+  }, { timeout: 30000 }).catch(() => null);
+
+  console.log(`Berhasil login sebagai ${role}.`);
+  await page.waitForTimeout(2000); // give it a moment to load user state
 }
 
 async function captureRoute(page, route) {
@@ -263,7 +246,8 @@ async function captureRoute(page, route) {
     await page
       .getByRole("button", { name: /Daftar/i })
       .first()
-      .click();
+      .click()
+      .catch(() => null);
   }
 
   const wireframeReady = await waitWireframeMode(page);
@@ -286,35 +270,53 @@ async function capture() {
   await fs.mkdir(outputDir, { recursive: true });
 
   const browser = await chromium.launch({ headless: true });
-  const context = await browser.newContext({
-    viewport: { width: 1440, height: 900 },
-  });
-
-  const page = await context.newPage();
   let failedCount = 0;
 
+  // 1. Capture Pre-Auth routes in an isolated context
   const preAuthRoutes = routes.filter((item) => item.preAuth);
-  const postAuthRoutes = routes.filter((item) => !item.preAuth);
-
-  for (const route of preAuthRoutes) {
-    try {
-      await captureRoute(page, route);
-    } catch (error) {
-      failedCount += 1;
-      console.error(`Failed: ${route.name}`);
-      console.error(error);
+  if (preAuthRoutes.length > 0) {
+    const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    const page = await context.newPage();
+    console.log(`\n=== Capturing Pre-Auth Routes ===`);
+    for (const route of preAuthRoutes) {
+      try {
+        await captureRoute(page, route);
+      } catch (error) {
+        failedCount += 1;
+        console.error(`Failed: ${route.name}`);
+        console.error(error);
+      }
     }
+    await context.close();
   }
 
-  await seedData(page);
+  // 2. Capture Post-Auth routes group by role
+  const roles = ["student", "lecturer", "administrator"];
+  
+  for (const role of roles) {
+    const roleRoutes = routes.filter((item) => !item.preAuth && item.role === role);
+    if (roleRoutes.length === 0) continue;
 
-  for (const route of postAuthRoutes) {
+    // Create a fresh context for this role to avoid cookie clashes
+    const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    const page = await context.newPage();
+    
     try {
-      await captureRoute(page, route);
+      await loginAs(page, role);
+      for (const route of roleRoutes) {
+        try {
+          await captureRoute(page, route);
+        } catch (error) {
+          failedCount += 1;
+          console.error(`Failed: ${route.name}`);
+          console.error(error);
+        }
+      }
     } catch (error) {
-      failedCount += 1;
-      console.error(`Failed: ${route.name}`);
-      console.error(error);
+      console.error(`Error processing role ${role}:`, error);
+      failedCount += roleRoutes.length; // Mark all routes for this role as failed
+    } finally {
+      await context.close();
     }
   }
 
