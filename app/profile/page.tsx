@@ -56,9 +56,47 @@ export default function ProfilePage() {
         e.preventDefault();
         if (!user) return;
         setError('');
+
+        // Validate the password fields up front so an invalid password never
+        // leaves the profile half-saved.
+        const wantsPasswordChange = Boolean(currentPassword || newPassword || confirmPassword);
+        if (wantsPasswordChange) {
+            if (!currentPassword || !newPassword || !confirmPassword) {
+                setError('Semua field password harus diisi untuk update password.');
+                return;
+            }
+            if (newPassword !== confirmPassword) {
+                setError('Konfirmasi password tidak cocok.');
+                return;
+            }
+            if (newPassword.length < 6) {
+                setError('Password baru minimal 6 karakter.');
+                return;
+            }
+        }
+
         setIsSaving(true);
 
         try {
+            // Verify the current password before touching anything. Supabase's
+            // updateUser() only needs a valid session, it never checks the old
+            // password — so re-authenticating is the only way to prove the user
+            // really knows it.
+            if (wantsPasswordChange) {
+                if (!user.email) {
+                    throw new Error('Akun ini tidak memiliki password. Gunakan menu Lupa Password untuk membuat password baru.');
+                }
+
+                const { error: reauthError } = await supabase.auth.signInWithPassword({
+                    email: user.email,
+                    password: currentPassword,
+                });
+
+                if (reauthError) {
+                    throw new Error('Password saat ini salah.');
+                }
+            }
+
             let cvPath: string | undefined;
 
             // Upload CV to Supabase Storage
@@ -100,22 +138,17 @@ export default function ProfilePage() {
             }
 
             // Update password if requested
-            if (currentPassword || newPassword || confirmPassword) {
-                if (!newPassword || !confirmPassword) {
-                    throw new Error('Semua field password harus diisi untuk update password.');
-                }
-                if (newPassword !== confirmPassword) {
-                    throw new Error('Konfirmasi password tidak cocok.');
-                }
-                if (newPassword.length < 6) {
-                    throw new Error('Password baru minimal 6 karakter.');
-                }
-
+            if (wantsPasswordChange) {
                 const { error: pwError } = await supabase.auth.updateUser({
                     password: newPassword,
                 });
 
-                if (pwError) throw pwError;
+                if (pwError) {
+                    if (pwError.message?.includes('should be different')) {
+                        throw new Error('Password baru harus berbeda dari password saat ini.');
+                    }
+                    throw pwError;
+                }
 
                 setCurrentPassword('');
                 setNewPassword('');

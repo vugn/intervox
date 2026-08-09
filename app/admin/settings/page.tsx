@@ -37,14 +37,52 @@ export default function AdminSettingsPage() {
     }
   };
 
-  const handleSave = async () => {
-    setSaving(true);
-    setMessage(null);
+  const isValidHttpUrl = (value: string) => {
     try {
-      await updateSystemSettings('head_of_program_signature', headOfProgram, userData?.id);
+      const url = new URL(value);
+      return url.protocol === 'http:' || url.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setMessage(null);
+
+    // Trim first: `required` alone still lets a field full of spaces through.
+    const payload = {
+      name: headOfProgram.name.trim(),
+      nip: headOfProgram.nip.trim(),
+      signature_url: headOfProgram.signature_url.trim(),
+      qr_code_data: headOfProgram.qr_code_data.trim(),
+    };
+
+    if (!payload.name || !payload.nip) {
+      setMessage({ type: 'error', text: 'Nama lengkap & gelar dan NIP wajib diisi.' });
+      return;
+    }
+    if (!/^[0-9 ]+$/.test(payload.nip)) {
+      setMessage({ type: 'error', text: 'NIP hanya boleh berisi angka dan spasi.' });
+      return;
+    }
+    if (payload.signature_url && !isValidHttpUrl(payload.signature_url)) {
+      setMessage({ type: 'error', text: 'Tautan URL tanda tangan tidak valid. Gunakan awalan http:// atau https://.' });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await updateSystemSettings('head_of_program_signature', payload, userData?.id);
+      setHeadOfProgram(payload);
       setMessage({ type: 'success', text: 'Pengaturan berhasil disimpan.' });
-    } catch (error) {
-      setMessage({ type: 'error', text: 'Gagal menyimpan pengaturan.' });
+    } catch (error: any) {
+      setMessage({
+        type: 'error',
+        text: error?.message
+          ? `Gagal menyimpan pengaturan: ${error.message}`
+          : 'Gagal menyimpan pengaturan.',
+      });
     } finally {
       setSaving(false);
     }
@@ -77,7 +115,7 @@ export default function AdminSettingsPage() {
           <Loader2 className="w-8 h-8 animate-spin text-slate-300" />
         </div>
       ) : (
-        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+        <form onSubmit={handleSave} className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
           <div className="p-6 sm:p-8 border-b border-slate-200">
             <h2 className="text-lg font-bold text-slate-900 mb-4">Pengesahan Laporan (Dekan Fakultas Teknologi Informasi)</h2>
             <p className="text-sm text-slate-500 mb-6">
@@ -93,9 +131,12 @@ export default function AdminSettingsPage() {
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Nama Lengkap & Gelar</label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    Nama Lengkap &amp; Gelar <span className="text-red-500">*</span>
+                  </label>
                   <input
                     type="text"
+                    required
                     value={headOfProgram.name}
                     onChange={(e) => setHeadOfProgram({ ...headOfProgram, name: e.target.value })}
                     placeholder="Prof. Dr. Hj. Silvia Ratna, S.Kom., M.Kom."
@@ -103,9 +144,13 @@ export default function AdminSettingsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">NIP</label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    NIP <span className="text-red-500">*</span>
+                  </label>
                   <input
                     type="text"
+                    required
+                    inputMode="numeric"
                     value={headOfProgram.nip}
                     onChange={(e) => setHeadOfProgram({ ...headOfProgram, nip: e.target.value })}
                     placeholder="19750913 200501 2 001"
@@ -148,7 +193,7 @@ export default function AdminSettingsPage() {
           </div>
           <div className="bg-slate-50 p-6 sm:px-8 border-t border-slate-200 flex justify-end">
             <button
-              onClick={handleSave}
+              type="submit"
               disabled={saving}
               className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl font-medium transition-colors flex items-center gap-2 disabled:opacity-50"
             >
@@ -156,7 +201,7 @@ export default function AdminSettingsPage() {
               Simpan Pengaturan
             </button>
           </div>
-        </div>
+        </form>
       )}
     </div>
   );

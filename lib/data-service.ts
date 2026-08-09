@@ -106,7 +106,7 @@ export async function upsertUser(uid: string, data: Record<string, unknown>) {
   // 1. Upsert user record
   const { data: existing } = await supabase
     .from("users")
-    .select("id, account_status")
+    .select("id, account_status, role")
     .eq("auth_id", uid)
     .maybeSingle();
 
@@ -114,7 +114,9 @@ export async function upsertUser(uid: string, data: Record<string, unknown>) {
     auth_id: uid,
     email: data.email as string,
     full_name: (data.displayName ?? data.fullName ?? "") as string,
-    role: (data.role ?? "student") as string,
+    // Keep the existing role. Callers such as the profile form don't send a
+    // role, so defaulting to "student" here would demote lecturers/admins.
+    role: ((existing as any)?.role ?? data.role ?? "student") as string,
     account_status: (existing as any)?.account_status || data.accountStatus || "pending",
     phone: data.phone as string | undefined,
     department: data.department as string | undefined,
@@ -127,7 +129,15 @@ export async function upsertUser(uid: string, data: Record<string, unknown>) {
 
   if (existing) {
     userId = existing.id;
-    await supabase.from("users").update(userPayload).eq("id", userId);
+    const { error: updateError } = await supabase
+      .from("users")
+      .update(userPayload)
+      .eq("id", userId);
+
+    if (updateError) {
+      console.error("Error updating user:", updateError.message, updateError.details, updateError.code);
+      throw new Error(updateError.message || "Failed to update user record");
+    }
   } else {
     const { data: newUser, error } = await supabase
       .from("users")
@@ -170,15 +180,18 @@ export async function upsertUser(uid: string, data: Record<string, unknown>) {
       .eq("user_id", userId)
       .maybeSingle();
 
-    if (existingProfile) {
-      await supabase
-        .from("student_profiles")
-        .update(profilePayload)
-        .eq("user_id", userId);
-    } else {
-      await supabase
-        .from("student_profiles")
-        .insert({ ...profilePayload, created_at: new Date().toISOString() });
+    const { error: profileError } = existingProfile
+      ? await supabase
+          .from("student_profiles")
+          .update(profilePayload)
+          .eq("user_id", userId)
+      : await supabase
+          .from("student_profiles")
+          .insert({ ...profilePayload, created_at: new Date().toISOString() });
+
+    if (profileError) {
+      console.error("Error saving student profile:", profileError.message, profileError.details, profileError.code);
+      throw new Error(profileError.message || "Failed to save student profile");
     }
   }
 }
@@ -189,6 +202,24 @@ export async function getInternalUserId(authUid: string): Promise<string | null>
     .select("id")
     .eq("auth_id", authUid)
     .maybeSingle();
+  return data?.id ?? null;
+}
+
+/**
+ * Accepts either a Supabase auth uid or an internal users.id and returns the
+ * internal users.id, or null when the row doesn't exist. Use this before
+ * writing any column that has a foreign key to users(id).
+ */
+export async function resolveUserId(id: string): Promise<string | null> {
+  const internalId = await getInternalUserId(id);
+  if (internalId) return internalId;
+
+  const { data } = await supabase
+    .from("users")
+    .select("id")
+    .eq("id", id)
+    .maybeSingle();
+
   return data?.id ?? null;
 }
 
@@ -252,18 +283,29 @@ export async function getSystemSettings(key: string) {
 }
 
 export async function updateSystemSettings(key: string, value: any, userId?: string) {
+  // updated_by has a foreign key to users(id), so accept either id form.
+  const updatedBy = userId ? await resolveUserId(userId) : null;
+
   const { error } = await supabase
     .from("system_settings")
     .upsert({ 
       setting_key: key, 
       setting_value: value, 
       updated_at: new Date().toISOString(),
-      updated_by: userId || null 
+      updated_by: updatedBy 
     }, { onConflict: 'setting_key' });
 
   if (error) {
-    console.error("Error updating system settings:", error);
-    throw error;
+    // Log the fields individually — a PostgrestError serialises to "{}" in the
+    // Next.js console overlay, which hides the actual reason.
+    console.error(
+      "Error updating system settings:",
+      error.message,
+      error.code,
+      error.details,
+      error.hint,
+    );
+    throw new Error(error.message || "Failed to update system settings");
   }
 }
 
@@ -342,7 +384,12 @@ export async function updateSession(
   if (data.expressionData !== undefined) payload.expression_data = data.expressionData;
   if (data.isVerifiedByExpert !== undefined) payload.is_verified_by_expert = data.isVerifiedByExpert;
   if (data.expertFeedback !== undefined) payload.expert_feedback = data.expertFeedback;
-  if (data.expertId !== undefined) payload.expert_id = data.expertId;
+  // expert_id has a foreign key to users(id), so accept either id form.
+  if (data.expertId !== undefined) {
+    payload.expert_id = data.expertId
+      ? await resolveUserId(data.expertId as string)
+      : null;
+  }
   if (data.starAnalysis !== undefined) payload.star_analysis = data.starAnalysis;
 
   const { error } = await supabase
@@ -565,6 +612,14 @@ export async function createQuestion(input: {
   difficultyLevel?: string;
   createdBy?: string;
 }) {
+  // question_banks.created_by references users.id (the internal PK), but callers
+  // hand over the Supabase auth uid. Resolve it, and fall back to NULL rather
+  // than letting the insert fail on a foreign key violation.
+  let createdById: string | null = null;
+  if (input.createdBy) {
+    createdById = await resolveUserId(input.createdBy);
+  }
+
   const { data, error } = await supabase
     .from("question_banks")
     .insert({
@@ -572,7 +627,7 @@ export async function createQuestion(input: {
       question_text: input.questionText,
       ideal_keywords: input.idealKeywords,
       difficulty_level: input.difficultyLevel,
-      created_by: input.createdBy,
+      created_by: createdById,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })

@@ -81,7 +81,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Listen to auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         // If mockRole is active, don't let auth state changes override the mock
         if (mockRoleParam) return;
 
@@ -89,11 +89,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(currentUser);
 
         if (currentUser) {
-          await syncUserData(currentUser);
+          // IMPORTANT: supabase-js runs this callback while still holding its
+          // internal auth lock. Awaiting another supabase call here (getUser,
+          // updateUser, etc.) deadlocks the client — e.g. saving the profile
+          // would hang forever on supabase.auth.updateUser(). Defer the async
+          // work so the callback returns and the lock is released first.
+          setTimeout(() => {
+            syncUserData(currentUser).finally(() => setLoading(false));
+          }, 0);
         } else {
           setUserData(null);
+          setLoading(false);
         }
-        setLoading(false);
       }
     );
 
