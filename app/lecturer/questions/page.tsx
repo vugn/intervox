@@ -70,9 +70,14 @@ export default function LecturerQuestionsPage() {
         rows = await listCategories();
       }
 
-      const mapped = rows && rows.length > 0 
-        ? rows.map((c: any) => ({ id: c.id, categoryName: c.categoryName }))
-        : DEFAULT_LECTURER_CATEGORIES.map((cat, idx) => ({ id: `default-${idx}`, categoryName: cat.categoryName }));
+      // Only real category rows are usable. Fabricating ids like "default-0"
+      // made the dropdown look populated while every read and write against
+      // that id failed, so the question list always came back empty.
+      const mapped = (rows ?? []).map((c: any) => ({ id: c.id, categoryName: c.categoryName }));
+
+      if (mapped.length === 0) {
+        setErrorMsg('Belum ada kategori wawancara di database. Buat kategori baru lebih dulu melalui tombol "+ Kategori Baru".');
+      }
 
       setCategories(mapped);
       const initialId = selectedCategory || (mapped.length > 0 ? mapped[0].id : '');
@@ -80,15 +85,15 @@ export default function LecturerQuestionsPage() {
         setSelectedCategory(initialId);
       }
       return initialId;
-    } catch (e) {
+    } catch (e: any) {
       console.error('Error loading categories:', e);
-      const fallback = DEFAULT_LECTURER_CATEGORIES.map((cat, idx) => ({ id: `default-${idx}`, categoryName: cat.categoryName }));
-      setCategories(fallback);
-      const initialId = selectedCategory || (fallback.length > 0 ? fallback[0].id : '');
-      if (initialId && !selectedCategory) {
-        setSelectedCategory(initialId);
-      }
-      return initialId;
+      setCategories([]);
+      setErrorMsg(
+        e?.message
+          ? `Gagal memuat kategori wawancara: ${e.message}`
+          : 'Gagal memuat kategori wawancara. Periksa koneksi atau hak akses akun Anda.',
+      );
+      return '';
     }
   };
 

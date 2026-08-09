@@ -514,10 +514,13 @@ export async function listAllSessions() {
 // ─── Categories ──────────────────────────────────────────────────────────────
 
 export async function listCategories(): Promise<CategoryItem[]> {
+  // Sorted by name so the dropdown selection stays stable. Sorting by
+  // created_at meant the auto-selected category changed every time a new
+  // category row appeared.
   const { data, error } = await supabase
     .from("interview_categories")
     .select("*")
-    .order("created_at", { ascending: false });
+    .order("category_name", { ascending: true });
 
   if (error || !data) return [];
 
@@ -532,10 +535,32 @@ export async function listCategories(): Promise<CategoryItem[]> {
 }
 
 export async function createCategory(input: Omit<CategoryItem, "id">) {
+  // Reuse an existing category with the same name instead of creating a
+  // duplicate. Without this the lecturer page kept spawning extra rows, and the
+  // dropdown ended up pointing at an empty duplicate while the questions sat
+  // under the original category.
+  const { data: existing } = await supabase
+    .from("interview_categories")
+    .select("*")
+    .ilike("category_name", input.categoryName.trim())
+    .limit(1)
+    .maybeSingle();
+
+  if (existing) {
+    return {
+      id: existing.id,
+      categoryName: existing.category_name,
+      description: existing.description,
+      moduleType: existing.module_type,
+      difficultyLevel: existing.difficulty_level,
+      isActive: existing.is_active,
+    } as CategoryItem;
+  }
+
   const { data, error } = await supabase
     .from("interview_categories")
     .insert({
-      category_name: input.categoryName,
+      category_name: input.categoryName.trim(),
       description: input.description,
       module_type: input.moduleType,
       difficulty_level: input.difficultyLevel,
@@ -587,14 +612,36 @@ export async function updateCategory(id: string, input: Partial<CategoryItem>) {
 
 // ─── Questions ───────────────────────────────────────────────────────────────
 
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function listQuestionsByCategory(categoryId: string) {
+  // A placeholder id such as "default-0" is not a UUID: Postgres rejects the
+  // query and the empty result used to look like "there are no questions".
+  if (!UUID_PATTERN.test(categoryId)) {
+    console.warn(
+      `listQuestionsByCategory: "${categoryId}" bukan UUID kategori yang valid, query dilewati.`,
+    );
+    return [];
+  }
+
   const { data, error } = await supabase
     .from("question_banks")
     .select("*")
     .eq("category_id", categoryId)
     .order("created_at", { ascending: false });
 
-  if (error || !data) return [];
+  if (error) {
+    console.error(
+      "listQuestionsByCategory error:",
+      error.message,
+      error.code,
+      error.details,
+    );
+    return [];
+  }
+
+  if (!data) return [];
 
   return data.map((row) => ({
     id: row.id,
@@ -1055,10 +1102,18 @@ export async function getSystemUsageStats() {
   const { data, error } = await supabase
     .from("system_usage_stats")
     .select("*")
+    .order("month_period", { ascending: false })
+    .limit(1)
     .maybeSingle();
 
   if (error) {
-    console.error("Error fetching system stats:", error);
+    console.error(
+      "Error fetching system stats:",
+      error.message,
+      error.code,
+      error.details,
+      error.hint,
+    );
     return null;
   }
   return data;
