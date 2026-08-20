@@ -9,11 +9,11 @@ import { ArrowLeft, MessageSquare, Star, User, Download } from 'lucide-react';
 import * as motion from 'motion/react-client';
 import ReportTemplate from '@/components/report-template';
 
-const DEMO_FEEDBACKS = [
-  { id: 'f1', rating: 5, comments: 'Platform ini sangat membantu latihan interview saya! AI-nya terasa seperti interviewer nyata. Saya jadi lebih percaya diri.', submitted_at: '2026-08-05T10:30:00Z', users: { full_name: 'Gus Tiran', email: 'gustiranda3014@gmail.com' } },
-  { id: 'f2', rating: 4, comments: 'Fitur transkripnya bagus sekali. Bisa review jawaban saya setelah sesi selesai. Minta tambah fitur rekap mingguan.', submitted_at: '2026-08-04T14:15:00Z', users: { full_name: 'Dimas Pratama', email: 'dimas.pratama@student.uniska.ac.id' } },
-  { id: 'f3', rating: 5, comments: 'Rekomendasi pengembangan dari AI sangat spesifik dan actionable. Berbeda dengan feedback umum yang biasanya saya dapat.', submitted_at: '2026-08-03T09:00:00Z', users: { full_name: 'Andika Putra', email: 'andika.p@student.uniska.ac.id' } },
-  { id: 'f4', rating: 3, comments: 'Bagus tapi kadang respons AI sedikit lambat. Overall pengalaman latihan sangat positif.', submitted_at: '2026-08-01T16:45:00Z', users: { full_name: 'Rina Septiani', email: 'rina.s@student.uniska.ac.id' } },
+const DEMO_FEEDBACKS: any[] = [
+  { id: 'f1', rating: 5, comments: 'Platform ini sangat membantu latihan interview saya! AI-nya terasa seperti interviewer nyata. Saya jadi lebih percaya diri.', submitted_at: '2026-08-05T10:30:00Z', session_id: 'demo-s1', users: { full_name: 'Gus Tiran', email: 'gustiranda3014@gmail.com' } },
+  { id: 'f2', rating: 4, comments: 'Fitur transkripnya bagus sekali. Bisa review jawaban saya setelah sesi selesai. Minta tambah fitur rekap mingguan.', submitted_at: '2026-08-04T14:15:00Z', session_id: 'demo-s2', users: { full_name: 'Dimas Pratama', email: 'dimas.pratama@student.uniska.ac.id' } },
+  { id: 'f3', rating: 5, comments: 'Rekomendasi pengembangan dari AI sangat spesifik dan actionable. Berbeda dengan feedback umum yang biasanya saya dapat.', submitted_at: '2026-08-03T09:00:00Z', session_id: 'demo-s3', users: { full_name: 'Andika Putra', email: 'andika.p@student.uniska.ac.id' } },
+  { id: 'f4', rating: 3, comments: 'Bagus tapi kadang respons AI sedikit lambat. Overall pengalaman latihan sangat positif.', submitted_at: '2026-08-01T16:45:00Z', session_id: 'demo-s4', users: { full_name: 'Rina Septiani', email: 'rina.s@student.uniska.ac.id' } },
 ];
 
 export default function UserFeedbackReport() {
